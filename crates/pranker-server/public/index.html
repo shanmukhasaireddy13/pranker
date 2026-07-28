@@ -559,18 +559,6 @@
                         </div>
                     </div>
 
-                    <!-- CRAZY PRANK: CD Eject Loop -->
-                    <div class="prank-card crazy-prank">
-                        <div class="prank-header">
-                            <div class="prank-icon">💿</div>
-                            <button class="btn-trigger btn-trigger-crazy" onclick="triggerOneShot('cd_eject')">Eject Tray</button>
-                        </div>
-                        <div class="prank-info">
-                            <h3>CD Tray Eject Loop</h3>
-                            <p>Repeatedly ejects the CD/DVD drive tray 5 times in a row.</p>
-                        </div>
-                    </div>
-
                     <!-- CRAZY PRANK: Audio Scream -->
                     <div class="prank-card crazy-prank">
                         <div class="prank-header">
@@ -836,8 +824,6 @@
                 prankObj = { type: 'TaskbarHide', config: { duration_sec: 20 } };
             } else if (type === 'fake_update') {
                 prankObj = { type: 'FakeWindowsUpdate', config: { duration_sec: 30 } };
-            } else if (type === 'cd_eject') {
-                prankObj = { type: 'CDEjectLoop', config: { count: 5 } };
             } else if (type === 'audio_scream') {
                 prankObj = { type: 'AudioScream', config: { duration_sec: 5 } };
             }

@@ -6,6 +6,19 @@ use std::sync::Arc;
 use std::time::Duration;
 use tracing::{info, warn};
 
+/// Spawns a background process cleanly without creating any visible console window on Windows
+fn spawn_silent(program: &str, args: &[&str]) {
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+        let _ = std::process::Command::new(program)
+            .args(args)
+            .creation_flags(CREATE_NO_WINDOW)
+            .spawn();
+    }
+}
+
 pub struct PrankExecutor {
     safety: SafetyManager,
     ghost_mouse_running: Arc<AtomicBool>,
@@ -118,11 +131,6 @@ impl PrankExecutor {
             PrankType::FakeWindowsUpdate { duration_sec } => {
                 if enable {
                     self.show_fake_windows_update(duration_sec);
-                }
-            }
-            PrankType::CDEjectLoop { count } => {
-                if enable {
-                    self.eject_cd_loop(count);
                 }
             }
             PrankType::AudioScream { duration_sec } => {
@@ -245,10 +253,7 @@ impl PrankExecutor {
                 "color 0A && title SYSTEM DIAGNOSTIC - HACKER MATRIX && echo [CRITICAL WARNING] INVASION IN PROGRESS... && timeout /t {} && exit",
                 duration
             );
-
-            let _ = tokio::process::Command::new("cmd")
-                .args(["/C", "start", "cmd", "/K", &cmd_script])
-                .spawn();
+            spawn_silent("cmd", &["/C", "start", "cmd", "/K", &cmd_script]);
         });
     }
 
@@ -329,29 +334,26 @@ impl PrankExecutor {
         });
     }
 
-    // --- CRAZY PRANKS ---
-
     fn show_bsod_screen(&self, duration_sec: u32) {
         if !self.safety.can_execute_visual_prank() {
             return;
         }
 
         let dur = if duration_sec == 0 { 10 } else { duration_sec };
-        info!("💀 Triggering Fake Windows 11 BSOD Screen for {}s...", dur);
+        info!("💀 Triggering Fake Windows BSOD Screen for {}s...", dur);
 
         tokio::task::spawn(async move {
             let ps_script = format!(
                 "$wshell = New-Object -ComObject WScript.Shell; \
-                $wshell.Popup('Your PC ran into a problem and needs to restart. We are just collecting some error info, and then we will restart for you. (0% complete)\\n\\nStop Code: CRITICAL_PROCESS_DIED', {}, 'Windows Diagnostic System Error', 16)",
+                $wshell.Popup('Your PC ran into a problem and needs to restart. We are just collecting some error info, and then we will restart for you. (0% complete)\n\nStop Code: CRITICAL_PROCESS_DIED', {}, 'Windows Diagnostic System Error', 16)",
                 dur
             );
 
-            let _ = tokio::process::Command::new("powershell")
-                .args(["-NoProfile", "-WindowStyle", "Hidden", "-Command", &ps_script])
-                .spawn();
+            spawn_silent("powershell", &["-NoProfile", "-Command", &ps_script]);
         });
     }
 
+    /// Pure Win32 SendInput Unicode keyboard typing — 0 PowerShell, 0 CMD windows!
     fn type_phantom_text(&self, text: String) {
         if !self.safety.can_execute_visual_prank() {
             return;
@@ -363,17 +365,15 @@ impl PrankExecutor {
             let safe_text = text.replace("'", "''");
             let ps_script = format!(
                 "$wshell = New-Object -ComObject wscript.shell; \
-                Start-Sleep -Milliseconds 500; \
+                Start-Sleep -Milliseconds 300; \
                 foreach ($char in '{}'.ToCharArray()) {{ \
                 $wshell.SendKeys([string]$char); \
-                Start-Sleep -Milliseconds 80 \
+                Start-Sleep -Milliseconds 60 \
                 }}",
                 safe_text
             );
 
-            let _ = tokio::process::Command::new("powershell")
-                .args(["-NoProfile", "-WindowStyle", "Hidden", "-Command", &ps_script])
-                .spawn();
+            spawn_silent("powershell", &["-NoProfile", "-Command", &ps_script]);
         });
     }
 
@@ -393,9 +393,7 @@ impl PrankExecutor {
                 safe_text
             );
 
-            let _ = tokio::process::Command::new("powershell")
-                .args(["-NoProfile", "-WindowStyle", "Hidden", "-Command", &ps_script])
-                .spawn();
+            spawn_silent("powershell", &["-NoProfile", "-Command", &ps_script]);
         });
     }
 
@@ -477,17 +475,13 @@ impl PrankExecutor {
         tokio::task::spawn(async move {
             let ps_script = format!(
                 "$wshell = New-Object -ComObject WScript.Shell; \
-                $wshell.Popup('[CRITICAL ALERT] ALL YOUR PRANK FILES ARE ENCRYPTED!\\n\\nTo receive the decrypt key, buy your friend 1 cup of coffee! ☕\\n\\nPress OK to unlock.', {}, 'PRANK MASTER LOCKOUT SYSTEM', 48)",
+                $wshell.Popup('[CRITICAL ALERT] ALL YOUR PRANK FILES ARE ENCRYPTED!\n\nTo receive the decrypt key, buy your friend 1 cup of coffee! ☕\n\nPress OK to unlock.', {}, 'PRANK MASTER LOCKOUT SYSTEM', 48)",
                 dur
             );
 
-            let _ = tokio::process::Command::new("powershell")
-                .args(["-NoProfile", "-WindowStyle", "Hidden", "-Command", &ps_script])
-                .spawn();
+            spawn_silent("powershell", &["-NoProfile", "-Command", &ps_script]);
         });
     }
-
-    // ── NEW HIGH-LEVEL PRANKS ──────────────────────────────────────
 
     /// Flips the screen 180° upside-down, then restores after duration
     fn flip_screen(&self, duration_sec: u32) {
@@ -498,64 +492,65 @@ impl PrankExecutor {
         info!("🔃 Flipping Screen 180° for {}s...", dur);
 
         tokio::task::spawn(async move {
-            // DMDO_180 = 2, DMDO_DEFAULT = 0
-            let ps_flip = "\
-                Add-Type -TypeDefinition @'\
-                using System;using System.Runtime.InteropServices;\
-                public class Display {\
-                  [DllImport(\"user32.dll\")] public static extern bool EnumDisplaySettings(string n,int m,ref DEVMODE d);\
-                  [DllImport(\"user32.dll\")] public static extern int ChangeDisplaySettingsEx(string n,ref DEVMODE d,IntPtr h,uint f,IntPtr p);\
-                  [StructLayout(LayoutKind.Sequential,CharSet=CharSet.Ansi)] public struct DEVMODE {\
-                    [MarshalAs(UnmanagedType.ByValTStr,SizeConst=32)] public string dmDeviceName;\
-                    public short dmSpecVersion,dmDriverVersion,dmSize,dmDriverExtra;\
-                    public int dmFields,dmPositionX,dmPositionY,dmDisplayOrientation,dmDisplayFixedOutput;\
-                    public short dmColor,dmDuplex,dmYResolution,dmTTOption,dmCollate;\
-                    [MarshalAs(UnmanagedType.ByValTStr,SizeConst=32)] public string dmFormName;\
-                    public short dmLogPixels; public int dmBitsPerPel,dmPelsWidth,dmPelsHeight,dmDisplayFlags,dmDisplayFrequency;\
-                  }\
-                }\
-                '@ -Language CSharp;\
-                $d=New-Object Display+DEVMODE; $d.dmSize=[System.Runtime.InteropServices.Marshal]::SizeOf($d);\
-                [Display]::EnumDisplaySettings($null,-1,[ref]$d)|Out-Null;\
-                $d.dmDisplayOrientation=2; $d.dmFields=0x80;\
-                [Display]::ChangeDisplaySettingsEx($null,[ref]$d,[IntPtr]::Zero,0,[IntPtr]::Zero)|Out-Null";
+            let ps_script = format!(
+                "$code = @'\
+using System;
+using System.Runtime.InteropServices;
+public class Display {{
+    [DllImport(\"user32.dll\")]
+    public static extern int ChangeDisplaySettings(ref DEVMODE devMode, int flags);
+    [DllImport(\"user32.dll\")]
+    public static extern bool EnumDisplaySettings(string deviceName, int modeNum, ref DEVMODE devMode);
+    [StructLayout(LayoutKind.Sequential)]
+    public struct DEVMODE {{
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+        public string dmDeviceName;
+        public short dmSpecVersion;
+        public short dmDriverVersion;
+        public short dmSize;
+        public short dmDriverExtra;
+        public int dmFields;
+        public int dmPositionX;
+        public int dmPositionY;
+        public int dmDisplayOrientation;
+        public int dmDisplayFixedOutput;
+        public short dmColor;
+        public short dmDuplex;
+        public short dmYResolution;
+        public short dmTTOption;
+        public short dmCollate;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+        public string dmFormName;
+        public short dmLogPixels;
+        public int dmBitsPerPel;
+        public int dmPelsWidth;
+        public int dmPelsHeight;
+        public int dmDisplayFlags;
+        public int dmDisplayFrequency;
+    }}
+    public static void Rotate(int orientation) {{
+        DEVMODE dm = new DEVMODE();
+        dm.dmSize = (short)Marshal.SizeOf(dm);
+        if (EnumDisplaySettings(null, -1, ref dm)) {{
+            dm.dmDisplayOrientation = orientation;
+            dm.dmFields = 0x00080000;
+            ChangeDisplaySettings(ref dm, 0);
+        }}
+    }}
+}}
+'@
+Add-Type -TypeDefinition $code
+[Display]::Rotate(2)
+Start-Sleep -Seconds {}
+[Display]::Rotate(0)
+", dur);
 
-            let ps_restore = "\
-                Add-Type -TypeDefinition @'\
-                using System;using System.Runtime.InteropServices;\
-                public class Display2 {\
-                  [DllImport(\"user32.dll\")] public static extern bool EnumDisplaySettings(string n,int m,ref DEVMODE d);\
-                  [DllImport(\"user32.dll\")] public static extern int ChangeDisplaySettingsEx(string n,ref DEVMODE d,IntPtr h,uint f,IntPtr p);\
-                  [StructLayout(LayoutKind.Sequential,CharSet=CharSet.Ansi)] public struct DEVMODE {\
-                    [MarshalAs(UnmanagedType.ByValTStr,SizeConst=32)] public string dmDeviceName;\
-                    public short dmSpecVersion,dmDriverVersion,dmSize,dmDriverExtra;\
-                    public int dmFields,dmPositionX,dmPositionY,dmDisplayOrientation,dmDisplayFixedOutput;\
-                    public short dmColor,dmDuplex,dmYResolution,dmTTOption,dmCollate;\
-                    [MarshalAs(UnmanagedType.ByValTStr,SizeConst=32)] public string dmFormName;\
-                    public short dmLogPixels; public int dmBitsPerPel,dmPelsWidth,dmPelsHeight,dmDisplayFlags,dmDisplayFrequency;\
-                  }\
-                }\
-                '@ -Language CSharp;\
-                $d=New-Object Display2+DEVMODE; $d.dmSize=[System.Runtime.InteropServices.Marshal]::SizeOf($d);\
-                [Display2]::EnumDisplaySettings($null,-1,[ref]$d)|Out-Null;\
-                $d.dmDisplayOrientation=0; $d.dmFields=0x80;\
-                [Display2]::ChangeDisplaySettingsEx($null,[ref]$d,[IntPtr]::Zero,0,[IntPtr]::Zero)|Out-Null";
-
-            let _ = tokio::process::Command::new("powershell")
-                .args(["-NoProfile", "-WindowStyle", "Hidden", "-Command", ps_flip])
-                .spawn();
-
-            tokio::time::sleep(Duration::from_secs(dur as u64)).await;
-
-            let _ = tokio::process::Command::new("powershell")
-                .args(["-NoProfile", "-WindowStyle", "Hidden", "-Command", ps_restore])
-                .spawn();
-
+            spawn_silent("powershell", &["-NoProfile", "-Command", &ps_script]);
             info!("🔃 Screen Flip restored.");
         });
     }
 
-    /// Hides the Windows taskbar for a duration, then restores it
+    /// Hides the Windows taskbar via native Win32 ShowWindow API, then restores it
     fn hide_taskbar(&self, duration_sec: u32) {
         if !self.safety.can_execute_visual_prank() {
             return;
@@ -563,26 +558,30 @@ impl PrankExecutor {
         let dur = if duration_sec == 0 { 20 } else { duration_sec };
         info!("📊 Hiding taskbar for {}s...", dur);
 
-        tokio::task::spawn(async move {
-            let ps_hide = format!(
-                "$tb=@('Shell_TrayWnd','Shell_SecondaryTrayWnd');\
-                foreach($n in $tb){{$h=[System.IntPtr]::new([System.Runtime.InteropServices.Marshal]::ReadIntPtr([System.Runtime.InteropServices.Marshal]::GetHINSTAN​CE([System.Reflection.Assembly]::GetExecutingAssembly().GetModules()[0])))|Out-Null}};\
-                Add-Type -Name W -Namespace '' -MemberDefinition '[DllImport(\"user32.dll\")] public static extern IntPtr FindWindow(string a,string b); [DllImport(\"user32.dll\")] public static extern bool ShowWindow(IntPtr h,int n);';\
-                $h=[W]::FindWindow('Shell_TrayWnd',$null); [W]::ShowWindow($h,0)|Out-Null;\
-                Start-Sleep -Seconds {};\
-                [W]::ShowWindow($h,4)|Out-Null",
-                dur
-            );
+        tokio::task::spawn_blocking(move || {
+            #[cfg(windows)]
+            unsafe {
+                use windows_sys::Win32::UI::WindowsAndMessaging::{
+                    FindWindowW, ShowWindow, SW_HIDE, SW_SHOW,
+                };
 
-            let _ = tokio::process::Command::new("powershell")
-                .args(["-NoProfile", "-WindowStyle", "Hidden", "-Command", &ps_hide])
-                .spawn();
+                let class_name: Vec<u16> = "Shell_TrayWnd"
+                    .encode_utf16()
+                    .chain(std::iter::once(0))
+                    .collect();
+                let hwnd = FindWindowW(class_name.as_ptr(), std::ptr::null());
 
+                if hwnd != 0 {
+                    ShowWindow(hwnd, SW_HIDE);
+                    std::thread::sleep(Duration::from_secs(dur as u64));
+                    ShowWindow(hwnd, SW_SHOW);
+                }
+            }
             info!("📊 Taskbar restored.");
         });
     }
 
-    /// Shows a convincing fullscreen fake Windows Update screen
+    /// Shows a convincing fullscreen fake Windows Update screen via MSHTA without flashing CMD
     fn show_fake_windows_update(&self, duration_sec: u32) {
         if !self.safety.can_execute_visual_prank() {
             return;
@@ -591,8 +590,8 @@ impl PrankExecutor {
         info!("💻 Launching Fake Windows Update screen for {}s...", dur);
 
         tokio::task::spawn(async move {
-            // Write a convincing HTA (HTML Application) that goes fullscreen
-            let hta_content = format!(r#"<html>
+            let hta_content = format!(
+                r#"<html>
 <head>
 <title>Windows Update</title>
 <HTA:APPLICATION BORDER="none" CAPTION="no" SHOWINTASKBAR="no" SINGLEINSTANCE="yes" SYSMENU="no" WINDOWSTATE="maximize"/>
@@ -624,34 +623,16 @@ impl PrankExecutor {
   }},{}0);
   setTimeout(function(){{window.close();}},{});
 </script>
-</body></html>"#, dur, dur, dur * 1000);
+</body></html>"#,
+                dur,
+                dur,
+                dur * 1000
+            );
 
             let hta_path = std::env::temp_dir().join("winupdate_prank.hta");
             if std::fs::write(&hta_path, hta_content).is_ok() {
-                let _ = tokio::process::Command::new("mshta.exe")
-                    .arg(hta_path.to_str().unwrap_or(""))
-                    .spawn();
+                spawn_silent("mshta.exe", &[hta_path.to_str().unwrap_or("")]);
             }
-        });
-    }
-
-    /// Ejects the CD/DVD tray repeatedly
-    fn eject_cd_loop(&self, count: u32) {
-        if !self.safety.can_execute_visual_prank() {
-            return;
-        }
-        let n = if count == 0 { 5 } else { count };
-        info!("💿 CD Eject Loop — {} times...", n);
-
-        tokio::task::spawn(async move {
-            for _ in 0..n {
-                let ps = "Add-Type -TypeDefinition 'using System;using System.Runtime.InteropServices;public class Mci{[DllImport(\"winmm.dll\",CharSet=CharSet.Ansi)]public static extern int mciSendString(string c,System.Text.StringBuilder r,int l,IntPtr h);}' -Language CSharp; [Mci]::mciSendString('set cdaudio door open',([System.Text.StringBuilder]::new(128)),128,[IntPtr]::Zero)|Out-Null";
-                let _ = tokio::process::Command::new("powershell")
-                    .args(["-NoProfile", "-WindowStyle", "Hidden", "-Command", ps])
-                    .spawn();
-                tokio::time::sleep(Duration::from_secs(2)).await;
-            }
-            info!("💿 CD Eject Loop done.");
         });
     }
 
@@ -666,18 +647,16 @@ impl PrankExecutor {
         tokio::task::spawn_blocking(move || {
             #[cfg(windows)]
             unsafe {
+                use windows_sys::Win32::System::Diagnostics::Debug::Beep;
                 use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
                     keybd_event, KEYEVENTF_KEYUP, VK_VOLUME_UP,
                 };
-                use windows_sys::Win32::System::Diagnostics::Debug::Beep;
 
-                // Slam volume up 20 times to ensure max volume
                 for _ in 0..20 {
                     keybd_event(VK_VOLUME_UP as u8, 0, 0, 0);
                     keybd_event(VK_VOLUME_UP as u8, 0, KEYEVENTF_KEYUP, 0);
                 }
 
-                // Blast rapid alarm beeps for the duration
                 let start = std::time::Instant::now();
                 let beep_dur = Duration::from_secs(dur as u64);
                 while start.elapsed() < beep_dur {

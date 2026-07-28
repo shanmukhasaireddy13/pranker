@@ -69,10 +69,6 @@ pub enum PrankType {
     FakeWindowsUpdate {
         duration_sec: u32,
     },
-    /// Rapidly ejects the CD/DVD tray repeatedly
-    CDEjectLoop {
-        count: u32,
-    },
     /// Blasts volume to max and plays loud system alert
     AudioScream {
         duration_sec: u32,
@@ -97,7 +93,6 @@ impl PrankType {
             PrankType::ScreenFlip { .. } => "Screen Flip",
             PrankType::TaskbarHide { .. } => "Taskbar Hide",
             PrankType::FakeWindowsUpdate { .. } => "Fake Windows Update",
-            PrankType::CDEjectLoop { .. } => "CD Eject Loop",
             PrankType::AudioScream { .. } => "Audio Scream",
         }
     }
@@ -119,7 +114,6 @@ impl PrankType {
             PrankType::ScreenFlip { .. } => "screen_flip",
             PrankType::TaskbarHide { .. } => "taskbar_hide",
             PrankType::FakeWindowsUpdate { .. } => "fake_windows_update",
-            PrankType::CDEjectLoop { .. } => "cd_eject_loop",
             PrankType::AudioScream { .. } => "audio_scream",
         }
     }
