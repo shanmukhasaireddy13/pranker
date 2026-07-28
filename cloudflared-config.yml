@@ -1,0 +1,18 @@
+# Cloudflare Tunnel Configuration for Pranker
+# -----------------------------------------------
+# IMPORTANT: Replace <TUNNEL_ID> below with the ID you get after running:
+#   cloudflared tunnel create pranker-server
+#
+# Your tunnel ID looks like: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+# After creating, copy the credentials JSON shown and make sure
+# ~/.cloudflared/pranker-server.json exists.
+
+tunnel: pranker-server
+credentials-file: C:\Users\lions\.cloudflared\pranker-server.json
+
+ingress:
+  # Route prank.steamhub.qzz.io to the local pranker server
+  - hostname: prank.steamhub.qzz.io
+    service: http://127.0.0.1:3030
+  # Catch-all: return 404 for anything else
+  - service: http_status:404

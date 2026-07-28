@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pranker Console - Remote Control Center</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0c10;
+            --bg-card: rgba(22, 27, 34, 0.75);
+            --bg-card-hover: rgba(33, 38, 45, 0.85);
+            --border-color: rgba(255, 255, 255, 0.1);
+            --accent-primary: #6366f1;
+            --accent-glow: rgba(99, 102, 241, 0.35);
+            --accent-danger: #ef4444;
+            --accent-danger-glow: rgba(239, 68, 68, 0.4);
+            --accent-success: #10b981;
+            --accent-warning: #f59e0b;
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background-image: 
+                radial-gradient(circle at 15% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 45%),
+                radial-gradient(circle at 85% 80%, rgba(239, 68, 68, 0.1) 0%, transparent 45%);
+            overflow-x: hidden;
+        }
+
+        header {
+            background: rgba(10, 12, 16, 0.8);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 800;
+            font-size: 1.4rem;
+            letter-spacing: -0.02em;
+        }
+
+        .logo-icon {
+            width: 38px;
+            height: 38px;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            box-shadow: 0 0 15px var(--accent-glow);
+        }
+
+        .server-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-danger);
+            box-shadow: 0 0 8px var(--accent-danger);
+            transition: all 0.3s;
+        }
+
+        .status-dot.online {
+            background: var(--accent-success);
+            box-shadow: 0 0 8px var(--accent-success);
+        }
+
+        .main-container {
+            max-width: 1350px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+            width: 100%;
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 900px) {
+            .main-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .sidebar-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .card {
+            background: var(--bg-card);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.5rem;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .card:hover {
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .card-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panic-button {
+            width: 100%;
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            border: none;
+            padding: 1.25rem;
+            border-radius: 14px;
+            font-weight: 800;
+            font-size: 1.1rem;
+            letter-spacing: 0.05em;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            box-shadow: 0 0 20px var(--accent-danger-glow);
+            transition: all 0.2s;
+        }
+
+        .panic-button:hover {
+            transform: scale(1.02);
+            box-shadow: 0 0 30px var(--accent-danger-glow);
+        }
+
+        .panic-button:active {
+            transform: scale(0.98);
+        }
+
+        .client-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .client-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .client-item:hover, .client-item.selected {
+            background: rgba(99, 102, 241, 0.1);
+            border-color: var(--accent-primary);
+        }
+
+        .client-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+        }
+
+        .client-meta {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 0.4rem;
+        }
+
+        .badge {
+            font-size: 0.7rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 6px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .badge-safe {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--accent-success);
+        }
+
+        .badge-disarmed {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--accent-danger);
+        }
+
+        /* Controls Section */
+        .dashboard-content {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .prank-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.25rem;
+        }
+
+        .prank-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 1rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .prank-card.crazy-prank {
+            border-color: rgba(239, 68, 68, 0.3);
+            background: rgba(30, 15, 25, 0.75);
+        }
+
+        .prank-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; height: 3px;
+            background: transparent;
+            transition: background 0.3s;
+        }
+
+        .prank-card.active::before {
+            background: linear-gradient(90deg, var(--accent-primary), #8b5cf6);
+        }
+
+        .prank-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .prank-icon {
+            font-size: 1.8rem;
+        }
+
+        .prank-info h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .prank-info p {
+            font-size: 0.825rem;
+            color: var(--text-muted);
+            line-height: 1.3;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 48px;
+            height: 26px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(255, 255, 255, 0.15);
+            transition: .3s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--accent-primary);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(22px);
+        }
+
+        .prank-controls-input {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .input-field {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0.5rem 0.75rem;
+            color: white;
+            font-size: 0.875rem;
+            width: 100%;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+
+        .btn-trigger {
+            background: rgba(99, 102, 241, 0.2);
+            color: #a5b4fc;
+            border: 1px solid rgba(99, 102, 241, 0.4);
+            padding: 0.6rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 0.25rem;
+        }
+
+        .btn-trigger:hover {
+            background: var(--accent-primary);
+            color: white;
+        }
+
+        .btn-trigger-crazy {
+            background: rgba(239, 68, 68, 0.25);
+            color: #fca5a5;
+            border: 1px solid rgba(239, 68, 68, 0.5);
+        }
+
+        .btn-trigger-crazy:hover {
+            background: var(--accent-danger);
+            color: white;
+        }
+
+        /* Log Feed */
+        .log-container {
+            font-family: 'JetBrains Mono', monospace;
+            background: #050608;
+            border-radius: 12px;
+            padding: 1rem;
+            font-size: 0.8rem;
+            height: 180px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+
+        .log-entry {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .log-time {
+            color: var(--text-muted);
+        }
+
+        .log-msg {
+            color: #d1d5db;
+        }
+
+        .log-msg.error { color: #f87171; }
+        .log-msg.success { color: #34d399; }
+        .log-msg.warn { color: #fbbf24; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <div class="logo-icon">🎭</div>
+            <span>Pranker Control Center</span>
+        </div>
+        <div class="server-status">
+            <div class="status-dot" id="ws-dot"></div>
+            <span id="ws-text">Connecting...</span>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <!-- Left Sidebar -->
+        <div class="sidebar-panel">
+            <button class="panic-button" onclick="triggerPanicAll()">
+                <span>🚨 EMERGENCY DISARM ALL</span>
+            </button>
+
+            <div class="card">
+                <div class="card-title">
+                    <span>Target Clients</span>
+                    <span id="client-count">0 Online</span>
+                </div>
+                <div class="client-list" id="client-list">
+                    <div style="text-align: center; color: var(--text-muted); font-size: 0.875rem; padding: 1rem;">
+                        Waiting for clients to connect...
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Safe Mode Controls</div>
+                <div style="display: flex; flex-direction: column; gap: 0.8rem; font-size: 0.875rem;">
+                    <label style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>Auto-Pause on Physical Mouse Movement</span>
+                        <input type="checkbox" id="chk-auto-pause" onchange="updateSafetyConfig()">
+                    </label>
+                    <label style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>Max Timeout (Sec)</span>
+                        <input type="number" id="num-timeout" value="60" min="5" max="300" style="width: 60px;" class="input-field" onchange="updateSafetyConfig()">
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Main Panel -->
+        <div class="dashboard-content">
+            <div class="card">
+                <div class="card-title">Active Target: <span id="active-target-name" style="color: var(--accent-primary);">All Connected</span></div>
+
+                <div class="prank-grid">
+                    <!-- CRAZY PRANK: Fake BSOD -->
+                    <div class="prank-card crazy-prank">
+                        <div class="prank-header">
+                            <div class="prank-icon">💀</div>
+                            <button class="btn-trigger btn-trigger-crazy" onclick="triggerOneShot('bsod')">Trigger BSOD</button>
+                        </div>
+                        <div class="prank-info">
+                            <h3>Fake Windows 11 BSOD</h3>
+                            <p>Full-screen blue screen of death with QR code & 0-100% crash counter. (Press Esc to close)</p>
+                        </div>
+                    </div>
+
+                    <!-- CRAZY PRANK: Phantom Typist -->
+                    <div class="prank-card crazy-prank">
+                        <div class="prank-header">
+                            <div class="prank-icon">⌨️</div>
+                            <button class="btn-trigger btn-trigger-crazy" onclick="triggerOneShot('phantom_typist')">Type Text</button>
+                        </div>
+                        <div class="prank-info">
+                            <h3>Phantom Typist</h3>
+                            <p>Simulates typing funny messages live into active window.</p>
+                        </div>
+                        <div class="prank-controls-input">
+                            <input type="text" id="typist-text" class="input-field" value="I think this laptop is possessed... 👻">
+                        </div>
+                    </div>
+
+                    <!-- CRAZY PRANK: Text-To-Speech -->
+                    <div class="prank-card crazy-prank">
+                        <div class="prank-header">
+                            <div class="prank-icon">🗣️</div>
+                            <button class="btn-trigger btn-trigger-crazy" onclick="triggerOneShot('tts')">Speak Voice</button>
+                        </div>
+                        <div class="prank-info">
+                            <h3>Text-To-Speech Voice</h3>
+                            <p>Speaks custom message out loud through computer speakers!</p>
+                        </div>
+                        <div class="prank-controls-input">
+                            <input type="text" id="tts-text" class="input-field" value="Warning! Your laptop is taking a mandatory 5 minute nap.">
+                        </div>
+                    </div>
+
+                    <!-- CRAZY PRANK: Screen Earthquake -->
+                    <div class="prank-card crazy-prank">
+                        <div class="prank-header">
+                            <div class="prank-icon">🌋</div>
+                            <button class="btn-trigger btn-trigger-crazy" onclick="triggerOneShot('earthquake')">Shake Screen</button>
+                        </div>
+                        <div class="prank-info">
+                            <h3>Screen Earthquake</h3>
+                            <p>Rapidly shakes active active window position back & forth.</p>
+                        </div>
+                    </div>
+
+                    <!-- CRAZY PRANK: Fake Ransomware Overlay -->
+                    <div class="prank-card crazy-prank">
+                        <div class="prank-header">
+                            <div class="prank-icon">🔒</div>
+                            <button class="btn-trigger btn-trigger-crazy" onclick="triggerOneShot('ransomware')">Lock Screen</button>
+                        </div>
+                        <div class="prank-info">
+                            <h3>Fake Ransomware Takeover</h3>
+                            <p>Displays full-screen red warning hacker lockout screen.</p>
+                        </div>
+                    </div>
+
+                    <!-- Ghost Mouse -->
+                    <div class="prank-card" id="card-ghost-mouse">
+                        <div class="prank-header">
+                            <div class="prank-icon">👻</div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="toggle-ghost-mouse" onchange="togglePrank('ghost_mouse')">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="prank-info">
+                            <h3>Ghost Mouse Jitter</h3>
+                            <p>Gently moves mouse cursor randomly when victim is idle.</p>
+                        </div>
+                        <div class="prank-controls-input">
+                            <label style="font-size: 0.75rem; color: var(--text-muted);">Jitter Speed (ms)</label>
+                            <input type="range" id="range-ghost-speed" min="50" max="1000" value="200" style="width: 100%;" onchange="togglePrank('ghost_mouse')">
+                        </div>
+                    </div>
+
+                    <!-- Caps Lock Strobe -->
+                    <div class="prank-card">
+                        <div class="prank-header">
+                            <div class="prank-icon">💡</div>
+                            <button class="btn-trigger" onclick="triggerOneShot('caps_strobe')">Flash LED</button>
+                        </div>
+                        <div class="prank-info">
+                            <h3>Caps Lock LED Strobe</h3>
+                            <p>Flashes keyboard Caps Lock light in rapid sequence.</p>
+                        </div>
+                    </div>
+
+                    <!-- Beep Alert -->
+                    <div class="prank-card" id="card-beep">
+                        <div class="prank-header">
+                            <div class="prank-icon">🔊</div>
+                            <button class="btn-trigger" onclick="triggerOneShot('beep')">⚡ Single Beep</button>
+                        </div>
+                        <div class="prank-info">
+                            <h3>Phantom Beeper</h3>
+                            <p>Plays harmless system alert sound intervals.</p>
+                        </div>
+                    </div>
+
+                    <!-- Custom Dialog Popup -->
+                    <div class="prank-card" id="card-popup">
+                        <div class="prank-header">
+                            <div class="prank-icon">💬</div>
+                            <button class="btn-trigger" onclick="triggerOneShot('popup')">Send Popup</button>
+                        </div>
+                        <div class="prank-info">
+                            <h3>Dialog Popup Alert</h3>
+                            <p>Displays a funny native Windows message dialog box.</p>
+                        </div>
+                        <div class="prank-controls-input">
+                            <input type="text" id="popup-title" class="input-field" value="Windows System Notice">
+                            <input type="text" id="popup-msg" class="input-field" value="Your CPU demands a 5-minute coffee break immediately!">
+                        </div>
+                    </div>
+
+                    <!-- Matrix Rain Overlay -->
+                    <div class="prank-card" id="card-matrix">
+                        <div class="prank-header">
+                            <div class="prank-icon">💻</div>
+                            <button class="btn-trigger" onclick="triggerOneShot('matrix')">Start Rain</button>
+                        </div>
+                        <div class="prank-info">
+                            <h3>Hacker Matrix Screen</h3>
+                            <p>Displays full-screen green hacker rain terminal window.</p>
+                        </div>
+                    </div>
+
+                    <!-- Invert Mouse -->
+                    <div class="prank-card" id="card-invert-mouse">
+                        <div class="prank-header">
+                            <div class="prank-icon">🔄</div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="toggle-invert-mouse" onchange="togglePrank('invert_mouse')">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="prank-info">
+                            <h3>Invert Axis Drift</h3>
+                            <p>Temporarily drifts mouse direction opposite to movement.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Activity Log -->
+            <div class="card">
+                <div class="card-title">Live Activity Feed</div>
+                <div class="log-container" id="log-feed">
+                    <div class="log-entry">
+                        <span class="log-time">[00:00:00]</span>
+                        <span class="log-msg">Dashboard initialized. Waiting for WebSocket connection...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws;
+        let selectedClientId = null;
+        let clientMap = new Map();
+
+        function connectWs() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws`;
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                document.getElementById('ws-dot').classList.add('online');
+                document.getElementById('ws-text').textContent = 'Connected to Server';
+                log('Connected to Pranker control server', 'success');
+            };
+
+            ws.onclose = () => {
+                document.getElementById('ws-dot').classList.remove('online');
+                document.getElementById('ws-text').textContent = 'Disconnected (Reconnecting...)';
+                log('Disconnected from server. Retrying in 3s...', 'error');
+                setTimeout(connectWs, 3000);
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    handleServerMessage(data);
+                } catch (err) {
+                    console.error('Failed to parse WS message:', err);
+                }
+            };
+        }
+
+        function handleServerMessage(msg) {
+            if (msg.action === 'ClientListUpdate') {
+                const clients = msg.payload.clients || [];
+                updateClientList(clients);
+            } else if (msg.action === 'ServerNotification') {
+                log(msg.payload.message, msg.payload.level);
+            }
+        }
+
+        function updateClientList(clients) {
+            clientMap.clear();
+            const listEl = document.getElementById('client-list');
+            document.getElementById('client-count').textContent = `${clients.length} Online`;
+
+            if (clients.length === 0) {
+                listEl.innerHTML = `<div style="text-align: center; color: var(--text-muted); font-size: 0.875rem; padding: 1rem;">No target clients online</div>`;
+                return;
+            }
+
+            listEl.innerHTML = clients.map(c => {
+                clientMap.set(c.client_id, c);
+                const isSelected = selectedClientId === c.client_id;
+                const statusBadge = c.disarmed 
+                    ? `<span class="badge badge-disarmed">DISARMED</span>` 
+                    : `<span class="badge badge-safe">ONLINE</span>`;
+                return `
+                    <div class="client-item ${isSelected ? 'selected' : ''}" onclick="selectClient('${c.client_id}')">
+                        <div class="client-header">
+                            <span>💻 ${escapeHtml(c.hostname)}</span>
+                            ${statusBadge}
+                        </div>
+                        <div class="client-meta">
+                            ID: ${c.client_id.substring(0, 8)}... | Active: ${c.active_pranks.length}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function selectClient(id) {
+            if (selectedClientId === id) {
+                selectedClientId = null;
+                document.getElementById('active-target-name').textContent = 'All Connected';
+            } else {
+                selectedClientId = id;
+                const c = clientMap.get(id);
+                document.getElementById('active-target-name').textContent = c ? c.hostname : id;
+            }
+            updateClientList(Array.from(clientMap.values()));
+        }
+
+        function togglePrank(prankKey) {
+            const isChecked = document.getElementById(`toggle-${prankKey}`)?.checked || false;
+            let prankObj;
+
+            if (prankKey === 'ghost_mouse') {
+                const speed = parseInt(document.getElementById('range-ghost-speed').value, 10);
+                prankObj = { type: 'GhostMouse', config: { intensity: 5, speed_ms: speed } };
+            } else if (prankKey === 'invert_mouse') {
+                prankObj = { type: 'InvertMouse', config: { duration_sec: 30 } };
+            }
+
+            if (!prankObj) return;
+
+            const target = selectedClientId || "all";
+            sendWsMessage({
+                action: 'TogglePrank',
+                payload: {
+                    target_client_id: target,
+                    prank: prankObj,
+                    enable: isChecked
+                }
+            });
+
+            log(`${isChecked ? 'Enabled' : 'Disabled'} ${prankObj.type} on target [${target}]`, isChecked ? 'warn' : 'info');
+        }
+
+        function triggerOneShot(type) {
+            let prankObj;
+            if (type === 'beep') {
+                prankObj = { type: 'BeepAlert', config: { frequency_hz: 880, duration_ms: 300, repeat_interval_sec: 0 } };
+            } else if (type === 'popup') {
+                const title = document.getElementById('popup-title').value;
+                const msg = document.getElementById('popup-msg').value;
+                prankObj = { type: 'MessageBox', config: { title, message: msg, icon_type: 'info' } };
+            } else if (type === 'matrix') {
+                prankObj = { type: 'MatrixOverlay', config: { duration_sec: 15 } };
+            } else if (type === 'bsod') {
+                prankObj = { type: 'BsodScreen', config: { duration_sec: 15 } };
+            } else if (type === 'phantom_typist') {
+                const text = document.getElementById('typist-text').value;
+                prankObj = { type: 'PhantomTypist', config: { text } };
+            } else if (type === 'tts') {
+                const text = document.getElementById('tts-text').value;
+                prankObj = { type: 'TextToSpeech', config: { text } };
+            } else if (type === 'earthquake') {
+                prankObj = { type: 'ScreenEarthquake', config: { duration_sec: 4, intensity: 10 } };
+            } else if (type === 'ransomware') {
+                prankObj = { type: 'FakeRansomware', config: { duration_sec: 10 } };
+            } else if (type === 'caps_strobe') {
+                prankObj = { type: 'CapsLockStrobe', config: { pulses: 10 } };
+            }
+
+            if (!prankObj) return;
+
+            const target = selectedClientId || "all";
+            sendWsMessage({
+                action: 'TriggerOneShot',
+                payload: {
+                    target_client_id: target,
+                    prank: prankObj
+                }
+            });
+            log(`Triggered ${prankObj.type} on target [${target}]`, 'success');
+        }
+
+        function triggerPanicAll() {
+            sendWsMessage({
+                action: 'PanicDisarmAll',
+                payload: { target_client_id: selectedClientId }
+            });
+            log('🚨 PANIC DISARM COMMAND SENT TO ALL CLIENTS!', 'error');
+            document.querySelectorAll('.toggle-switch input').forEach(input => input.checked = false);
+        }
+
+        function updateSafetyConfig() {
+            const autoPause = document.getElementById('chk-auto-pause').checked;
+            const timeout = parseInt(document.getElementById('num-timeout').value, 10);
+            
+            const target = selectedClientId || "all";
+            sendWsMessage({
+                action: 'UpdateSafetySettings',
+                payload: {
+                    target_client_id: target,
+                    settings: {
+                        auto_pause_on_user_input: autoPause,
+                        max_prank_timeout_sec: timeout,
+                        disarmed: false
+                    }
+                }
+            });
+            log(`Updated safety settings (AutoPause=${autoPause}, Timeout=${timeout}s)`, 'info');
+        }
+
+        function sendWsMessage(obj) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify(obj));
+            }
+        }
+
+        function log(msg, type = 'info') {
+            const logFeed = document.getElementById('log-feed');
+            const timeStr = new Date().toTimeString().split(' ')[0];
+            const div = document.createElement('div');
+            div.className = 'log-entry';
+            div.innerHTML = `<span class="log-time">[${timeStr}]</span> <span class="log-msg ${type}">${escapeHtml(msg)}</span>`;
+            logFeed.appendChild(div);
+            logFeed.scrollTop = logFeed.scrollHeight;
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+
+        connectWs();
+    </script>
+</body>
+</html>

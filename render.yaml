@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: pranker-server
+    env: rust
+    region: singapore  # change to oregon / frankfurt if you prefer
+    plan: free
+    buildCommand: cargo build --release -p pranker-server
+    startCommand: ./target/release/pranker-server
+    envVars:
+      - key: RUST_LOG
+        value: info
