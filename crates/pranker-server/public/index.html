@@ -523,6 +523,66 @@
                         </div>
                     </div>
 
+                    <!-- CRAZY PRANK: Screen Flip -->
+                    <div class="prank-card crazy-prank">
+                        <div class="prank-header">
+                            <div class="prank-icon">🔃</div>
+                            <button class="btn-trigger btn-trigger-crazy" onclick="triggerOneShot('screen_flip')">Flip 180°</button>
+                        </div>
+                        <div class="prank-info">
+                            <h3>Screen Flip 180°</h3>
+                            <p>Rotates display upside-down for 15s then restores automatically.</p>
+                        </div>
+                    </div>
+
+                    <!-- CRAZY PRANK: Taskbar Hide -->
+                    <div class="prank-card crazy-prank">
+                        <div class="prank-header">
+                            <div class="prank-icon">📊</div>
+                            <button class="btn-trigger btn-trigger-crazy" onclick="triggerOneShot('taskbar_hide')">Hide Taskbar</button>
+                        </div>
+                        <div class="prank-info">
+                            <h3>Taskbar Vanish</h3>
+                            <p>Hides Windows taskbar for 20s making the desktop feel broken.</p>
+                        </div>
+                    </div>
+
+                    <!-- CRAZY PRANK: Fake Windows Update -->
+                    <div class="prank-card crazy-prank">
+                        <div class="prank-header">
+                            <div class="prank-icon">💻</div>
+                            <button class="btn-trigger btn-trigger-crazy" onclick="triggerOneShot('fake_update')">Start Update</button>
+                        </div>
+                        <div class="prank-info">
+                            <h3>Fake Windows Update</h3>
+                            <p>Fullscreen realistic blue Windows Update screen with progress counter.</p>
+                        </div>
+                    </div>
+
+                    <!-- CRAZY PRANK: CD Eject Loop -->
+                    <div class="prank-card crazy-prank">
+                        <div class="prank-header">
+                            <div class="prank-icon">💿</div>
+                            <button class="btn-trigger btn-trigger-crazy" onclick="triggerOneShot('cd_eject')">Eject Tray</button>
+                        </div>
+                        <div class="prank-info">
+                            <h3>CD Tray Eject Loop</h3>
+                            <p>Repeatedly ejects the CD/DVD drive tray 5 times in a row.</p>
+                        </div>
+                    </div>
+
+                    <!-- CRAZY PRANK: Audio Scream -->
+                    <div class="prank-card crazy-prank">
+                        <div class="prank-header">
+                            <div class="prank-icon">📢</div>
+                            <button class="btn-trigger btn-trigger-crazy" onclick="triggerOneShot('audio_scream')">Max Alarm</button>
+                        </div>
+                        <div class="prank-info">
+                            <h3>Audio Scream Alarm</h3>
+                            <p>Maxes out volume slider and fires alternating rapid alarm beeps for 5s.</p>
+                        </div>
+                    </div>
+
                     <!-- CRAZY PRANK: Fake Ransomware Overlay -->
                     <div class="prank-card crazy-prank">
                         <div class="prank-header">
@@ -770,6 +830,16 @@
                 prankObj = { type: 'FakeRansomware', config: { duration_sec: 10 } };
             } else if (type === 'caps_strobe') {
                 prankObj = { type: 'CapsLockStrobe', config: { pulses: 10 } };
+            } else if (type === 'screen_flip') {
+                prankObj = { type: 'ScreenFlip', config: { duration_sec: 15 } };
+            } else if (type === 'taskbar_hide') {
+                prankObj = { type: 'TaskbarHide', config: { duration_sec: 20 } };
+            } else if (type === 'fake_update') {
+                prankObj = { type: 'FakeWindowsUpdate', config: { duration_sec: 30 } };
+            } else if (type === 'cd_eject') {
+                prankObj = { type: 'CDEjectLoop', config: { count: 5 } };
+            } else if (type === 'audio_scream') {
+                prankObj = { type: 'AudioScream', config: { duration_sec: 5 } };
             }
 
             if (!prankObj) return;

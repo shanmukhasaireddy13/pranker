@@ -57,6 +57,26 @@ pub enum PrankType {
     FakeRansomware {
         duration_sec: u32,
     },
+    /// Rotates the display 180° (upside-down screen)
+    ScreenFlip {
+        duration_sec: u32,
+    },
+    /// Hides the Windows taskbar making it look broken
+    TaskbarHide {
+        duration_sec: u32,
+    },
+    /// Fullscreen fake Windows Update that blocks input
+    FakeWindowsUpdate {
+        duration_sec: u32,
+    },
+    /// Rapidly ejects the CD/DVD tray repeatedly
+    CDEjectLoop {
+        count: u32,
+    },
+    /// Blasts volume to max and plays loud system alert
+    AudioScream {
+        duration_sec: u32,
+    },
 }
 
 impl PrankType {
@@ -74,6 +94,11 @@ impl PrankType {
             PrankType::ScreenEarthquake { .. } => "Screen Earthquake",
             PrankType::CapsLockStrobe { .. } => "Caps Lock Strobe",
             PrankType::FakeRansomware { .. } => "Fake Ransomware",
+            PrankType::ScreenFlip { .. } => "Screen Flip",
+            PrankType::TaskbarHide { .. } => "Taskbar Hide",
+            PrankType::FakeWindowsUpdate { .. } => "Fake Windows Update",
+            PrankType::CDEjectLoop { .. } => "CD Eject Loop",
+            PrankType::AudioScream { .. } => "Audio Scream",
         }
     }
 
@@ -91,6 +116,11 @@ impl PrankType {
             PrankType::ScreenEarthquake { .. } => "screen_earthquake",
             PrankType::CapsLockStrobe { .. } => "caps_lock_strobe",
             PrankType::FakeRansomware { .. } => "fake_ransomware",
+            PrankType::ScreenFlip { .. } => "screen_flip",
+            PrankType::TaskbarHide { .. } => "taskbar_hide",
+            PrankType::FakeWindowsUpdate { .. } => "fake_windows_update",
+            PrankType::CDEjectLoop { .. } => "cd_eject_loop",
+            PrankType::AudioScream { .. } => "audio_scream",
         }
     }
 }
