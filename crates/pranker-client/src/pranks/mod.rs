@@ -271,7 +271,8 @@ impl PrankExecutor {
         let safety = self.safety.clone();
 
         tokio::task::spawn_blocking(move || {
-            info!("🔄 Invert Mouse prank started for {}s", duration_sec);
+            let dur = if duration_sec == 0 { 20 } else { duration_sec };
+            info!("🔄 Invert Mouse prank started for {}s", dur);
             let start = std::time::Instant::now();
 
             #[cfg(windows)]
@@ -280,14 +281,14 @@ impl PrankExecutor {
             use windows_sys::Win32::UI::WindowsAndMessaging::{GetCursorPos, SetCursorPos};
 
             #[cfg(windows)]
-            let mut last_pos = POINT { x: 0, y: 0 };
+            let mut target_pos = POINT { x: 0, y: 0 };
             #[cfg(windows)]
             unsafe {
-                GetCursorPos(&mut last_pos);
+                GetCursorPos(&mut target_pos);
             }
 
             while running.load(Ordering::Relaxed)
-                && start.elapsed() < Duration::from_secs(duration_sec as u64)
+                && start.elapsed() < Duration::from_secs(dur as u64)
                 && !safety.is_disarmed()
             {
                 if safety.can_execute_input_prank() {
@@ -295,20 +296,23 @@ impl PrankExecutor {
                     unsafe {
                         let mut curr = POINT { x: 0, y: 0 };
                         if GetCursorPos(&mut curr) != 0 {
-                            let dx = curr.x - last_pos.x;
-                            let dy = curr.y - last_pos.y;
+                            // Calculate actual physical mouse delta moved by user
+                            let dx = curr.x - target_pos.x;
+                            let dy = curr.y - target_pos.y;
 
-                            if dx.abs() > 1 || dy.abs() > 1 {
+                            if dx != 0 || dy != 0 {
+                                // Invert direction: if user moved +dx, move cursor -2*dx to reverse motion
                                 let new_x = curr.x - (dx * 2);
                                 let new_y = curr.y - (dy * 2);
+
                                 safety.notify_cursor_set(new_x, new_y);
                                 SetCursorPos(new_x, new_y);
+                                target_pos = POINT { x: new_x, y: new_y };
                             }
-                            last_pos = curr;
                         }
                     }
                 }
-                std::thread::sleep(Duration::from_millis(30));
+                std::thread::sleep(Duration::from_millis(15));
             }
             running.store(false, Ordering::Relaxed);
             info!("🔄 Invert Mouse prank finished");
