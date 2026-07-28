@@ -141,6 +141,7 @@ pub struct ClientInfo {
     pub client_id: String,
     pub hostname: String,
     pub os_info: String,
+    pub version: String,
     pub safe_mode_active: bool,
     pub disarmed: bool,
     pub user_active: bool,
@@ -156,6 +157,7 @@ pub enum WsMessage {
         client_id: String,
         hostname: String,
         os_info: String,
+        version: String,
     },
     ClientHeartbeat {
         client_id: String,
@@ -163,6 +165,7 @@ pub enum WsMessage {
         disarmed: bool,
         user_active: bool,
         active_pranks: Vec<String>,
+        version: String,
     },
 
     // Sent by Controller Dashboard to Server
@@ -181,6 +184,10 @@ pub enum WsMessage {
     UpdateSafetySettings {
         target_client_id: String,
         settings: SafetySettings,
+    },
+    TriggerAutoUpdate {
+        target_client_id: String,
+        download_url: String,
     },
 
     // Server broadcasts to Controllers / Clients

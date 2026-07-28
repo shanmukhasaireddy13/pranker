@@ -103,14 +103,16 @@ async fn handle_socket(socket: WebSocket, state: AppState) {
                     client_id,
                     hostname,
                     os_info,
+                    version,
                 } => {
-                    info!("💻 Client registered: {} ({})", hostname, client_id);
+                    info!("💻 Client registered: {} ({}) [v{}]", hostname, client_id, version);
                     current_client_id = Some(client_id.clone());
 
                     let info = ClientInfo {
                         client_id: client_id.clone(),
                         hostname,
                         os_info,
+                        version,
                         safe_mode_active: true,
                         disarmed: false,
                         user_active: false,
@@ -132,6 +134,7 @@ async fn handle_socket(socket: WebSocket, state: AppState) {
                     disarmed,
                     user_active,
                     active_pranks,
+                    version,
                 } => {
                     let mut clients = state.clients.lock().unwrap();
                     if let Some((info, _)) = clients.get_mut(&client_id) {
@@ -139,6 +142,7 @@ async fn handle_socket(socket: WebSocket, state: AppState) {
                         info.disarmed = disarmed;
                         info.user_active = user_active;
                         info.active_pranks = active_pranks;
+                        info.version = version;
                     }
                     drop(clients);
                     broadcast_client_list(&state);
@@ -157,6 +161,14 @@ async fn handle_socket(socket: WebSocket, state: AppState) {
                     prank,
                 } => {
                     send_to_target(&state, &target_client_id, WsMessage::PrankCommand { prank, enable: true });
+                }
+
+                WsMessage::TriggerAutoUpdate {
+                    target_client_id,
+                    download_url,
+                } => {
+                    info!("🚀 Auto-update triggered for target: {} ({})", target_client_id, download_url);
+                    send_to_target(&state, &target_client_id, WsMessage::TriggerAutoUpdate { target_client_id: target_client_id.clone(), download_url });
                 }
 
                 WsMessage::PanicDisarmAll { target_client_id } => {

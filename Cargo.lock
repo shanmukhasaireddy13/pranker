@@ -800,23 +800,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pranker-client"
-version = "0.1.0"
-dependencies = [
- "futures-util",
- "hostname",
- "pranker-core",
- "rand",
- "serde",
- "serde_json",
- "tokio",
- "tokio-tungstenite 0.21.0",
- "tracing",
- "tracing-subscriber",
- "windows-sys 0.52.0",
-]
-
-[[package]]
 name = "pranker-core"
 version = "0.1.0"
 dependencies = [
@@ -1132,6 +1115,23 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.119",
+]
+
+[[package]]
+name = "system-admin"
+version = "1.1.0"
+dependencies = [
+ "futures-util",
+ "hostname",
+ "pranker-core",
+ "rand",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tokio-tungstenite 0.21.0",
+ "tracing",
+ "tracing-subscriber",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
