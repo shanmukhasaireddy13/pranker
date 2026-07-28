@@ -1,0 +1,3 @@
+[build]
+# Render rust environment build command
+command = "cargo build --release --bin pranker-server"
