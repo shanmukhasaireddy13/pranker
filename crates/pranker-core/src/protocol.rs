@@ -77,6 +77,10 @@ pub enum PrankType {
     ConfettiPopup {
         duration_sec: u32,
     },
+    /// NEW v1.3.0 FEATURE: Cyber Cyberpunk Glitch & Hologram Takeover
+    GlitchOverlay {
+        duration_sec: u32,
+    },
 }
 
 impl PrankType {
@@ -99,6 +103,7 @@ impl PrankType {
             PrankType::FakeWindowsUpdate { .. } => "Fake Windows Update",
             PrankType::AudioScream { .. } => "Audio Scream",
             PrankType::ConfettiPopup { .. } => "Party Confetti (v1.2)",
+            PrankType::GlitchOverlay { .. } => "Cyber Glitch (v1.3)",
         }
     }
 
@@ -121,6 +126,7 @@ impl PrankType {
             PrankType::FakeWindowsUpdate { .. } => "fake_windows_update",
             PrankType::AudioScream { .. } => "audio_scream",
             PrankType::ConfettiPopup { .. } => "confetti_popup",
+            PrankType::GlitchOverlay { .. } => "glitch_overlay",
         }
     }
 }

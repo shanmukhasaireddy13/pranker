@@ -143,6 +143,11 @@ impl PrankExecutor {
                     self.show_confetti_popup(duration_sec);
                 }
             }
+            PrankType::GlitchOverlay { duration_sec } => {
+                if enable {
+                    self.show_glitch_overlay(duration_sec);
+                }
+            }
         }
     }
 
@@ -790,6 +795,47 @@ Start-Sleep -Seconds {}
             );
 
             let hta_path = std::env::temp_dir().join("autoupdate_success.hta");
+            if std::fs::write(&hta_path, hta_content).is_ok() {
+                spawn_silent("mshta.exe", &[hta_path.to_str().unwrap_or("")]);
+            }
+        });
+    }
+
+    /// Fullscreen Cyberpunk Glitch & Hologram Takeover (v1.3.0 new feature)
+    fn show_glitch_overlay(&self, duration_sec: u32) {
+        if !self.safety.can_execute_visual_prank() {
+            return;
+        }
+        let dur = if duration_sec == 0 { 10 } else { duration_sec };
+        info!("⚡ Triggering Fullscreen Cyberpunk Glitch (v1.3.0) for {}s...", dur);
+
+        tokio::task::spawn(async move {
+            let hta_content = format!(
+                r#"<html>
+<head>
+<title>System Admin v1.3.0 Cyber Glitch</title>
+<HTA:APPLICATION BORDER="none" CAPTION="no" SHOWINTASKBAR="no" SINGLEINSTANCE="yes" SYSMENU="no" WINDOWSTATE="maximize"/>
+<style>
+  * {{ margin:0; padding:0; box-sizing:border-box; }}
+  body {{ background:#090d16; font-family:'Segoe UI',monospace; color:#00ffcc; display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh; overflow:hidden; user-select:none; }}
+  .glitch {{ font-size:64px; font-weight:800; text-shadow:2px 2px #ff0055, -2px -2px #00e5ff; animation:shake 0.2s infinite; margin-bottom:20px; }}
+  p {{ font-size:24px; color:#ff0055; letter-spacing:2px; font-weight:bold; margin-bottom:30px; }}
+  .ver {{ background:rgba(0,255,204,0.15); border:1px solid #00ffcc; padding:12px 24px; border-radius:8px; font-size:20px; color:#00ffcc; font-family:monospace; }}
+  @keyframes shake {{ 0% {{ transform:translate(0,0); }} 20% {{ transform:translate(-3px,3px); }} 40% {{ transform:translate(-3px,-3px); }} 60% {{ transform:translate(3px,3px); }} 80% {{ transform:translate(3px,-3px); }} 100% {{ transform:translate(0,0); }} }}
+</style>
+</head>
+<body>
+  <div class="glitch">SYSTEM ADMIN v1.3.0 ACTIVE</div>
+  <p>[AUTO-UPDATE TEST SUCCESSFUL — CLIENT IS AT v1.3.0]</p>
+  <div class="ver">Executable: system-admin.exe | Status: ONLINE</div>
+<script>
+  setTimeout(function() {{ window.close(); }}, {});
+</script>
+</body></html>"#,
+                dur * 1000
+            );
+
+            let hta_path = std::env::temp_dir().join("v13_glitch.hta");
             if std::fs::write(&hta_path, hta_content).is_ok() {
                 spawn_silent("mshta.exe", &[hta_path.to_str().unwrap_or("")]);
             }

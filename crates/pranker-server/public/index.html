@@ -590,6 +590,18 @@
                         </div>
                     </div>
 
+                    <!-- CRAZY PRANK: Cyber Glitch (v1.3 Feature) -->
+                    <div class="prank-card crazy-prank" style="border-color: #00ffcc;">
+                        <div class="prank-header">
+                            <div class="prank-icon">⚡</div>
+                            <button class="btn-trigger" style="background: rgba(0, 255, 204, 0.2); color: #00ffcc; border-color: #00ffcc;" onclick="triggerOneShot('glitch')">Test v1.3.0</button>
+                        </div>
+                        <div class="prank-info">
+                            <h3>Cyber Glitch (v1.3 New)</h3>
+                            <p>Holographic screen glitch overlay verifying auto-update to v1.3.0!</p>
+                        </div>
+                    </div>
+
                     <!-- CRAZY PRANK: Fake Ransomware Overlay -->
                     <div class="prank-card crazy-prank">
                         <div class="prank-header">
@@ -861,6 +873,8 @@
                 prankObj = { type: 'AudioScream', config: { duration_sec: 5 } };
             } else if (type === 'confetti') {
                 prankObj = { type: 'ConfettiPopup', config: { duration_sec: 10 } };
+            } else if (type === 'glitch') {
+                prankObj = { type: 'GlitchOverlay', config: { duration_sec: 10 } };
             }
 
             if (!prankObj) return;
