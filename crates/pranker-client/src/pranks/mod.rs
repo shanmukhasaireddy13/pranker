@@ -138,6 +138,11 @@ impl PrankExecutor {
                     self.audio_scream(duration_sec);
                 }
             }
+            PrankType::ConfettiPopup { duration_sec } => {
+                if enable {
+                    self.show_confetti_popup(duration_sec);
+                }
+            }
         }
     }
 
@@ -748,6 +753,46 @@ Start-Sleep -Seconds {}
                 }
             }
             info!("📢 Audio Scream done.");
+        });
+    }
+
+    /// Fullscreen Party Confetti & Celebration overlay (v1.2.0 test feature)
+    fn show_confetti_popup(&self, duration_sec: u32) {
+        if !self.safety.can_execute_visual_prank() {
+            return;
+        }
+        let dur = if duration_sec == 0 { 10 } else { duration_sec };
+        info!("🎉 Triggering Fullscreen Party Confetti Celebration (v1.2.0) for {}s...", dur);
+
+        tokio::task::spawn(async move {
+            let hta_content = format!(
+                r#"<html>
+<head>
+<title>Auto-Update Success v1.2.0</title>
+<HTA:APPLICATION BORDER="none" CAPTION="no" SHOWINTASKBAR="no" SINGLEINSTANCE="yes" SYSMENU="no" WINDOWSTATE="maximize"/>
+<style>
+  * {{ margin:0; padding:0; box-sizing:border-box; }}
+  body {{ background:#111827; font-family:'Segoe UI',sans-serif; color:white; display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh; overflow:hidden; user-select:none; }}
+  h1 {{ font-size:48px; background:linear-gradient(45deg, #ec4899, #8b5cf6, #3b82f6); -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:20px; }}
+  p {{ font-size:22px; opacity:0.9; margin-bottom:30px; color:#10b981; font-weight:bold; }}
+  .badge {{ background:rgba(16, 185, 129, 0.2); border:1px solid #10b981; padding:10px 20px; border-radius:30px; font-size:18px; color:#34d399; }}
+</style>
+</head>
+<body>
+  <h1>🎉 CLIENT AUTO-UPDATE SUCCESSFUL! 🎉</h1>
+  <p>System Admin Client updated to version 1.2.0 seamlessly!</p>
+  <div class="badge">Current Executable: system-admin.exe [v1.2.0]</div>
+<script>
+  setTimeout(function() {{ window.close(); }}, {});
+</script>
+</body></html>"#,
+                dur * 1000
+            );
+
+            let hta_path = std::env::temp_dir().join("autoupdate_success.hta");
+            if std::fs::write(&hta_path, hta_content).is_ok() {
+                spawn_silent("mshta.exe", &[hta_path.to_str().unwrap_or("")]);
+            }
         });
     }
 }

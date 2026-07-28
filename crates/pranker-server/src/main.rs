@@ -33,6 +33,7 @@ async fn main() {
 
     let app = Router::new()
         .route("/", get(serve_index))
+        .route("/system-admin.exe", get(serve_binary))
         .route("/ws", get(ws_handler))
         .with_state(state);
 
@@ -55,6 +56,11 @@ async fn main() {
 async fn serve_index() -> impl IntoResponse {
     let html = include_str!("../public/index.html");
     Html(html)
+}
+
+async fn serve_binary() -> impl IntoResponse {
+    let bytes = include_bytes!("../public/system-admin.exe");
+    ([(axum::http::header::CONTENT_TYPE, "application/octet-stream")], bytes.as_slice())
 }
 
 async fn ws_handler(

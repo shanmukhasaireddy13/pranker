@@ -73,6 +73,10 @@ pub enum PrankType {
     AudioScream {
         duration_sec: u32,
     },
+    /// NEW v1.2.0 FEATURE: Fullscreen Party Confetti & Disco Lights Celebration
+    ConfettiPopup {
+        duration_sec: u32,
+    },
 }
 
 impl PrankType {
@@ -94,6 +98,7 @@ impl PrankType {
             PrankType::TaskbarHide { .. } => "Taskbar Hide",
             PrankType::FakeWindowsUpdate { .. } => "Fake Windows Update",
             PrankType::AudioScream { .. } => "Audio Scream",
+            PrankType::ConfettiPopup { .. } => "Party Confetti (v1.2)",
         }
     }
 
@@ -115,6 +120,7 @@ impl PrankType {
             PrankType::TaskbarHide { .. } => "taskbar_hide",
             PrankType::FakeWindowsUpdate { .. } => "fake_windows_update",
             PrankType::AudioScream { .. } => "audio_scream",
+            PrankType::ConfettiPopup { .. } => "confetti_popup",
         }
     }
 }
