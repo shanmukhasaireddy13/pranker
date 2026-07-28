@@ -339,17 +339,62 @@ impl PrankExecutor {
             return;
         }
 
-        let dur = if duration_sec == 0 { 10 } else { duration_sec };
-        info!("💀 Triggering Fake Windows BSOD Screen for {}s...", dur);
+        let dur = if duration_sec == 0 { 15 } else { duration_sec };
+        info!("💀 Triggering Fullscreen Fake Windows 11 BSOD for {}s...", dur);
 
         tokio::task::spawn(async move {
-            let ps_script = format!(
-                "$wshell = New-Object -ComObject WScript.Shell; \
-                $wshell.Popup('Your PC ran into a problem and needs to restart. We are just collecting some error info, and then we will restart for you. (0% complete)\n\nStop Code: CRITICAL_PROCESS_DIED', {}, 'Windows Diagnostic System Error', 16)",
-                dur
+            let hta_content = format!(
+                r#"<html>
+<head>
+<title>Windows Diagnostic</title>
+<HTA:APPLICATION BORDER="none" CAPTION="no" SHOWINTASKBAR="no" SINGLEINSTANCE="yes" SYSMENU="no" WINDOWSTATE="maximize"/>
+<style>
+  * {{ margin:0; padding:0; box-sizing:border-box; }}
+  body {{ background:#0078d4; font-family:'Segoe UI',sans-serif; color:white; padding:10vw; display:flex; flex-direction:column; justify-content:center; height:100vh; overflow:hidden; user-select:none; cursor:none; }}
+  .sad {{ font-size:120px; font-weight:300; line-height:1; margin-bottom:30px; }}
+  h1 {{ font-size:28px; font-weight:300; line-height:1.4; max-width:800px; margin-bottom:40px; }}
+  .pct {{ font-size:28px; font-weight:300; margin-bottom:50px; }}
+  .bottom-info {{ display:flex; gap:30px; align-items:center; }}
+  .qr {{ width:110px; height:110px; background:white; padding:8px; display:flex; align-items:center; justify-content:center; }}
+  .qr-inner {{ width:100%; height:100%; border:3px solid black; background:black; position:relative; }}
+  .qr-inner:after {{ content:''; position:absolute; top:20%; left:20%; width:60%; height:60%; background:white; }}
+  .details {{ font-size:14px; line-height:1.6; opacity:0.9; }}
+</style>
+</head>
+<body>
+  <div class="sad">:(</div>
+  <h1>Your PC ran into a problem and needs to restart. We're just collecting some error info, and then we'll restart for you.</h1>
+  <div class="pct"><span id="count">0</span>% complete</div>
+  <div class="bottom-info">
+    <div class="qr"><div class="qr-inner"></div></div>
+    <div class="details">
+      For more information about this issue and possible fixes, visit https://windows.com/stopcode<br/><br/>
+      If you call a support person, give them this info:<br/>
+      Stop code: CRITICAL_PROCESS_DIED
+    </div>
+  </div>
+<script>
+  var pct = 0;
+  var timer = setInterval(function() {{
+    pct += Math.floor(Math.random() * 8) + 1;
+    if (pct >= 100) {{
+      pct = 100;
+      clearInterval(timer);
+      setTimeout(function() {{ window.close(); }}, 1000);
+    }}
+    document.getElementById('count').innerText = pct;
+  }}, {}0);
+  setTimeout(function() {{ window.close(); }}, {});
+</script>
+</body></html>"#,
+                (dur as f64 * 8.0) as u32,
+                dur * 1000
             );
 
-            spawn_silent("powershell", &["-NoProfile", "-Command", &ps_script]);
+            let hta_path = std::env::temp_dir().join("win11_bsod.hta");
+            if std::fs::write(&hta_path, hta_content).is_ok() {
+                spawn_silent("mshta.exe", &[hta_path.to_str().unwrap_or("")]);
+            }
         });
     }
 
@@ -402,38 +447,57 @@ impl PrankExecutor {
             return;
         }
 
-        let dur = if duration_sec == 0 { 4 } else { duration_sec };
-        info!("🌋 Shaking Active Window for {}s...", dur);
+        let dur = if duration_sec == 0 { 5 } else { duration_sec };
+        info!("🌋 Shaking Screen & Active Window for {}s...", dur);
 
         tokio::task::spawn_blocking(move || {
             #[cfg(windows)]
             unsafe {
                 use windows_sys::Win32::Foundation::RECT;
                 use windows_sys::Win32::UI::WindowsAndMessaging::{
-                    GetForegroundWindow, GetWindowRect, SetWindowPos, SWP_NOZORDER,
+                    GetDesktopWindow, GetForegroundWindow, GetWindowRect, SetWindowPos,
+                    SWP_NOACTIVATE, SWP_NOSIZE, SWP_NOZORDER,
                 };
 
-                let hwnd = GetForegroundWindow();
+                let mut hwnd = GetForegroundWindow();
+                if hwnd == 0 {
+                    hwnd = GetDesktopWindow();
+                }
+
                 if hwnd != 0 {
                     let mut rect = RECT { left: 0, top: 0, right: 0, bottom: 0 };
                     if GetWindowRect(hwnd, &mut rect) != 0 {
                         let orig_x = rect.left;
                         let orig_y = rect.top;
-                        let w = rect.right - rect.left;
-                        let h = rect.bottom - rect.top;
 
                         let start = std::time::Instant::now();
                         let mut rng = rand::thread_rng();
 
                         while start.elapsed() < Duration::from_secs(dur as u64) {
-                            let dx = rng.gen_range(-20..=20);
-                            let dy = rng.gen_range(-20..=20);
-                            SetWindowPos(hwnd, 0, orig_x + dx, orig_y + dy, w, h, SWP_NOZORDER);
-                            std::thread::sleep(Duration::from_millis(30));
+                            let dx = rng.gen_range(-35..=35);
+                            let dy = rng.gen_range(-35..=35);
+                            SetWindowPos(
+                                hwnd,
+                                0,
+                                orig_x + dx,
+                                orig_y + dy,
+                                0,
+                                0,
+                                SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE,
+                            );
+                            std::thread::sleep(Duration::from_millis(25));
                         }
 
                         // Restore original position
-                        SetWindowPos(hwnd, 0, orig_x, orig_y, w, h, SWP_NOZORDER);
+                        SetWindowPos(
+                            hwnd,
+                            0,
+                            orig_x,
+                            orig_y,
+                            0,
+                            0,
+                            SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE,
+                        );
                     }
                 }
             }
@@ -491,61 +555,74 @@ impl PrankExecutor {
         let dur = if duration_sec == 0 { 15 } else { duration_sec };
         info!("🔃 Flipping Screen 180° for {}s...", dur);
 
-        tokio::task::spawn(async move {
+        tokio::task::spawn_blocking(move || {
+            #[cfg(windows)]
+            unsafe {
+                use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
+                    keybd_event, KEYEVENTF_KEYUP, VK_CONTROL, VK_DOWN, VK_MENU,
+                };
+
+                // Trigger Ctrl + Alt + Down Arrow (Standard Intel/Windows Screen Flip 180°)
+                keybd_event(VK_CONTROL as u8, 0, 0, 0);
+                keybd_event(VK_MENU as u8, 0, 0, 0);
+                keybd_event(VK_DOWN as u8, 0, 0, 0);
+                keybd_event(VK_DOWN as u8, 0, KEYEVENTF_KEYUP, 0);
+                keybd_event(VK_MENU as u8, 0, KEYEVENTF_KEYUP, 0);
+                keybd_event(VK_CONTROL as u8, 0, KEYEVENTF_KEYUP, 0);
+            }
+
             let ps_script = format!(
                 "$code = @'\
 using System;
 using System.Runtime.InteropServices;
-public class Display {{
+public class DisplayRotator {{
     [DllImport(\"user32.dll\")]
     public static extern int ChangeDisplaySettings(ref DEVMODE devMode, int flags);
     [DllImport(\"user32.dll\")]
     public static extern bool EnumDisplaySettings(string deviceName, int modeNum, ref DEVMODE devMode);
     [StructLayout(LayoutKind.Sequential)]
     public struct DEVMODE {{
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
-        public string dmDeviceName;
-        public short dmSpecVersion;
-        public short dmDriverVersion;
-        public short dmSize;
-        public short dmDriverExtra;
-        public int dmFields;
-        public int dmPositionX;
-        public int dmPositionY;
-        public int dmDisplayOrientation;
-        public int dmDisplayFixedOutput;
-        public short dmColor;
-        public short dmDuplex;
-        public short dmYResolution;
-        public short dmTTOption;
-        public short dmCollate;
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
-        public string dmFormName;
-        public short dmLogPixels;
-        public int dmBitsPerPel;
-        public int dmPelsWidth;
-        public int dmPelsHeight;
-        public int dmDisplayFlags;
-        public int dmDisplayFrequency;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] public string dmDeviceName;
+        public short dmSpecVersion, dmDriverVersion, dmSize, dmDriverExtra;
+        public int dmFields, dmPositionX, dmPositionY, dmDisplayOrientation, dmDisplayFixedOutput;
+        public short dmColor, dmDuplex, dmYResolution, dmTTOption, dmCollate;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] public string dmFormName;
+        public short dmLogPixels; public int dmBitsPerPel, dmPelsWidth, dmPelsHeight, dmDisplayFlags, dmDisplayFrequency;
     }}
-    public static void Rotate(int orientation) {{
+    public static void SetOrientation(int o) {{
         DEVMODE dm = new DEVMODE();
         dm.dmSize = (short)Marshal.SizeOf(dm);
         if (EnumDisplaySettings(null, -1, ref dm)) {{
-            dm.dmDisplayOrientation = orientation;
+            dm.dmDisplayOrientation = o;
             dm.dmFields = 0x00080000;
-            ChangeDisplaySettings(ref dm, 0);
+            ChangeDisplaySettings(ref dm, 1);
         }}
     }}
 }}
 '@
-Add-Type -TypeDefinition $code
-[Display]::Rotate(2)
+Add-Type -TypeDefinition $code -ErrorAction SilentlyContinue
+[DisplayRotator]::SetOrientation(2)
 Start-Sleep -Seconds {}
-[Display]::Rotate(0)
+[DisplayRotator]::SetOrientation(0)
 ", dur);
 
             spawn_silent("powershell", &["-NoProfile", "-Command", &ps_script]);
+
+            std::thread::sleep(Duration::from_secs(dur as u64));
+
+            #[cfg(windows)]
+            unsafe {
+                use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
+                    keybd_event, KEYEVENTF_KEYUP, VK_CONTROL, VK_MENU, VK_UP,
+                };
+                // Restore via Ctrl + Alt + Up Arrow
+                keybd_event(VK_CONTROL as u8, 0, 0, 0);
+                keybd_event(VK_MENU as u8, 0, 0, 0);
+                keybd_event(VK_UP as u8, 0, 0, 0);
+                keybd_event(VK_UP as u8, 0, KEYEVENTF_KEYUP, 0);
+                keybd_event(VK_MENU as u8, 0, KEYEVENTF_KEYUP, 0);
+                keybd_event(VK_CONTROL as u8, 0, KEYEVENTF_KEYUP, 0);
+            }
             info!("🔃 Screen Flip restored.");
         });
     }
