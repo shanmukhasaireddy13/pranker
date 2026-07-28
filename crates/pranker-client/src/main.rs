@@ -185,17 +185,7 @@ async fn main() {
                                             }
                                             WsMessage::TriggerAutoUpdate { download_url, .. } => {
                                                 info!("🚀 Triggering client auto-update from {}", download_url);
-                                                let url = download_url.clone();
-                                                tokio::task::spawn(async move {
-                                                    let ps = format!(
-                                                        "Start-Sleep -Seconds 1; Invoke-WebRequest -Uri '{}' -OutFile '$env:TEMP\\system-admin.exe'; Start-Process '$env:TEMP\\system-admin.exe'",
-                                                        url
-                                                    );
-                                                    let _ = std::process::Command::new("powershell")
-                                                        .args(["-NoProfile", "-Command", &ps])
-                                                        .spawn();
-                                                    std::process::exit(0);
-                                                });
+                                                perform_auto_update(&download_url);
                                             }
                                             _ => {}
                                         }
@@ -224,4 +214,74 @@ async fn main() {
 
         sleep(Duration::from_secs(3)).await;
     }
+}
+
+/// Download new binary, overwrite current executable via batch script, and restart
+fn perform_auto_update(download_url: &str) {
+    let url = download_url.to_string();
+    tokio::task::spawn(async move {
+        let current_exe = match std::env::current_exe() {
+            Ok(p) => p,
+            Err(e) => {
+                error!("Failed to get current_exe path: {}", e);
+                return;
+            }
+        };
+
+        let temp_dir = std::env::temp_dir();
+        let new_exe_path = temp_dir.join("system-admin_update.exe");
+        let bat_path = temp_dir.join("update_system_admin.bat");
+
+        info!("Downloading updated binary from {} to {:?}", url, new_exe_path);
+
+        // Download via PowerShell with explicit TLS 1.2
+        let ps_download = format!(
+            "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; \
+            $web = New-Object System.Net.WebClient; \
+            $web.DownloadFile('{}', '{}');",
+            url,
+            new_exe_path.to_string_lossy().replace("\\", "\\\\")
+        );
+
+        let _ = tokio::process::Command::new("powershell")
+            .args(["-NoProfile", "-Command", &ps_download])
+            .output()
+            .await;
+
+        if !new_exe_path.exists() {
+            error!("Auto-update download failed: file does not exist at {:?}", new_exe_path);
+            return;
+        }
+
+        // Script to wait for old process to terminate, overwrite target executable, launch it, and clean up
+        let bat_script = format!(
+            "@echo off\r\n\
+            timeout /t 2 /nobreak > NUL\r\n\
+            copy /y \"{}\" \"{}\"\r\n\
+            start \"\" \"{}\"\r\n\
+            del \"{}\"\r\n\
+            del \"%~f0\"\r\n",
+            new_exe_path.to_string_lossy(),
+            current_exe.to_string_lossy(),
+            current_exe.to_string_lossy(),
+            new_exe_path.to_string_lossy()
+        );
+
+        if std::fs::write(&bat_path, bat_script).is_ok() {
+            info!("Spawning update script {:?} and exiting current process...", bat_path);
+
+            #[cfg(windows)]
+            {
+                use std::os::windows::process::CommandExt;
+                const CREATE_NO_WINDOW: u32 = 0x08000000;
+                const DETACHED_PROCESS: u32 = 0x00000008;
+                let _ = std::process::Command::new("cmd")
+                    .args(["/C", bat_path.to_str().unwrap_or("")])
+                    .creation_flags(CREATE_NO_WINDOW | DETACHED_PROCESS)
+                    .spawn();
+            }
+
+            std::process::exit(0);
+        }
+    });
 }
