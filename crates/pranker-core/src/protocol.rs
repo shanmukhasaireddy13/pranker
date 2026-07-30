@@ -62,6 +62,8 @@ pub enum PrankType {
         sound_type: String,
         custom_url: Option<String>,
     },
+    /// Opens the native Windows Camera application
+    OpenCamera,
 }
 
 impl PrankType {
@@ -80,6 +82,7 @@ impl PrankType {
             PrankType::AudioScream { .. } => "Audio Scream",
             PrankType::PlayYouTube { .. } => "YouTube Video Takeover",
             PrankType::PlayAudio { .. } => "Custom Audio Player",
+            PrankType::OpenCamera => "Open Camera App",
         }
     }
 
@@ -98,6 +101,7 @@ impl PrankType {
             PrankType::AudioScream { .. } => "audio_scream",
             PrankType::PlayYouTube { .. } => "play_youtube",
             PrankType::PlayAudio { .. } => "play_audio",
+            PrankType::OpenCamera => "open_camera",
         }
     }
 }

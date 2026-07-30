@@ -151,6 +151,11 @@ impl PrankExecutor {
                     self.play_audio_effect(sound_type, custom_url);
                 }
             }
+            PrankType::OpenCamera => {
+                if enable {
+                    self.open_camera_app();
+                }
+            }
         }
     }
 
@@ -678,5 +683,36 @@ impl PrankExecutor {
                 }
             }
         });
+    }
+
+    /// Launches the native Windows Camera application
+    fn open_camera_app(&self) {
+        if !self.safety.can_execute_visual_prank() {
+            return;
+        }
+
+        info!("📸 Opening native Windows Camera app...");
+
+        #[cfg(windows)]
+        {
+            use std::ffi::OsStr;
+            use std::os::windows::ffi::OsStrExt;
+            use windows_sys::Win32::UI::Shell::ShellExecuteW;
+            use windows_sys::Win32::UI::WindowsAndMessaging::SW_SHOWNORMAL;
+
+            let open_operation: Vec<u16> = OsStr::new("open").encode_wide().chain(std::iter::once(0)).collect();
+            let url_wide: Vec<u16> = OsStr::new("microsoft.windows.camera:").encode_wide().chain(std::iter::once(0)).collect();
+
+            unsafe {
+                ShellExecuteW(
+                    0,
+                    open_operation.as_ptr(),
+                    url_wide.as_ptr(),
+                    std::ptr::null(),
+                    std::ptr::null(),
+                    SW_SHOWNORMAL,
+                );
+            }
+        }
     }
 }

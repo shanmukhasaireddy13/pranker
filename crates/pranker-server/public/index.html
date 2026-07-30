@@ -606,6 +606,18 @@
                         </div>
                     </div>
 
+                    <!-- CRAZY PRANK: Open Camera App -->
+                    <div class="prank-card crazy-prank">
+                        <div class="prank-header">
+                            <div class="prank-icon">📸</div>
+                            <button class="btn-trigger btn-trigger-crazy" onclick="triggerOneShot('open_camera')">Open Camera</button>
+                        </div>
+                        <div class="prank-info">
+                            <h3>Open Camera App</h3>
+                            <p>Launches the native Windows Camera application interface.</p>
+                        </div>
+                    </div>
+
                     <!-- Beep Alert -->
                     <div class="prank-card" id="card-beep">
                         <div class="prank-header">
@@ -832,6 +844,8 @@
                 const soundType = document.getElementById('audio-type').value;
                 const customUrl = document.getElementById('audio-custom-url').value;
                 prankObj = { type: 'PlayAudio', config: { sound_type: soundType, custom_url: soundType === 'custom' ? customUrl : null } };
+            } else if (type === 'open_camera') {
+                prankObj = { type: 'OpenCamera' };
             }
 
             if (!prankObj) return;
