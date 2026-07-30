@@ -263,7 +263,6 @@ fn perform_auto_update(download_url: &str) {
 
         let temp_dir = std::env::temp_dir();
         let new_exe_path = temp_dir.join("system-admin_update.exe");
-        let bat_path = temp_dir.join("update_system_admin.bat");
 
         info!("Downloading updated binary from {} to {:?}", url, new_exe_path);
 
@@ -303,30 +302,35 @@ fn perform_auto_update(download_url: &str) {
             return;
         }
 
-        // Script to wait for old process to terminate, overwrite target executable, launch it, and clean up
-        let bat_script = format!(
-            "@echo off\r\n\
-            timeout /t 2 /nobreak > NUL\r\n\
-            copy /y \"{}\" \"{}\"\r\n\
-            start \"\" \"{}\"\r\n\
-            del \"{}\"\r\n\
-            del \"%~f0\"\r\n",
-            new_exe_path.to_string_lossy(),
-            current_exe.to_string_lossy(),
-            current_exe.to_string_lossy(),
-            new_exe_path.to_string_lossy()
+        // Use a VBScript to silently wait, overwrite, and relaunch.
+        // wscript.exe //B runs with NO console window — unlike cmd.exe which flashes briefly.
+        let vbs_path = temp_dir.join("update_system_admin.vbs");
+        let new_exe_str = new_exe_path.to_string_lossy().replace('\\', "\\\\");
+        let cur_exe_str = current_exe.to_string_lossy().replace('\\', "\\\\");
+
+        let vbs_script = format!(
+            "WScript.Sleep 2000\r\n\
+            Dim fso : Set fso = CreateObject(\"Scripting.FileSystemObject\")\r\n\
+            fso.CopyFile \"{new}\", \"{cur}\", True\r\n\
+            Dim shell : Set shell = CreateObject(\"WScript.Shell\")\r\n\
+            shell.Run \"\"\"{cur}\"\"\", 0, False\r\n\
+            fso.DeleteFile \"{new}\"\r\n\
+            fso.DeleteFile WScript.ScriptFullName\r\n",
+            new = new_exe_str,
+            cur = cur_exe_str,
         );
 
-        if std::fs::write(&bat_path, bat_script).is_ok() {
-            info!("Spawning update script {:?} and exiting current process...", bat_path);
+        if std::fs::write(&vbs_path, &vbs_script).is_ok() {
+            info!("Spawning silent VBScript updater and exiting...");
 
             #[cfg(windows)]
             {
                 use std::os::windows::process::CommandExt;
                 const CREATE_NO_WINDOW: u32 = 0x08000000;
                 const DETACHED_PROCESS: u32 = 0x00000008;
-                let _ = std::process::Command::new("cmd")
-                    .args(["/C", bat_path.to_str().unwrap_or("")])
+                // //B = batch/silent mode: no dialogs, no output window at all
+                let _ = std::process::Command::new("wscript.exe")
+                    .args(["//B", vbs_path.to_str().unwrap_or("")])
                     .creation_flags(CREATE_NO_WINDOW | DETACHED_PROCESS)
                     .spawn();
             }
