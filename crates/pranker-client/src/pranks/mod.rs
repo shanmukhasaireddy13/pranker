@@ -52,7 +52,6 @@ fn spawn_topmost_hta(hta_path: &std::path::Path) {
 
 pub struct PrankExecutor {
     safety: SafetyManager,
-    ghost_mouse_running: Arc<AtomicBool>,
     invert_mouse_running: Arc<AtomicBool>,
 }
 
@@ -60,16 +59,12 @@ impl PrankExecutor {
     pub fn new(safety: SafetyManager) -> Self {
         Self {
             safety,
-            ghost_mouse_running: Arc::new(AtomicBool::new(false)),
             invert_mouse_running: Arc::new(AtomicBool::new(false)),
         }
     }
 
     pub fn get_active_pranks(&self) -> Vec<String> {
         let mut active = vec![];
-        if self.ghost_mouse_running.load(Ordering::Relaxed) {
-            active.push("ghost_mouse".to_string());
-        }
         if self.invert_mouse_running.load(Ordering::Relaxed) {
             active.push("invert_mouse".to_string());
         }
@@ -85,9 +80,6 @@ impl PrankExecutor {
         info!("Executing Prank Command: {:?} (enable={})", prank.name(), enable);
 
         match prank {
-            PrankType::GhostMouse { intensity, speed_ms } => {
-                self.handle_ghost_mouse(enable, intensity, speed_ms);
-            }
             PrankType::BeepAlert {
                 frequency_hz,
                 duration_ms,
@@ -104,11 +96,6 @@ impl PrankExecutor {
             } => {
                 if enable {
                     self.show_message_box(title, message, icon_type);
-                }
-            }
-            PrankType::MatrixOverlay { duration_sec } => {
-                if enable {
-                    self.show_matrix_overlay(duration_sec);
                 }
             }
             PrankType::InvertMouse { duration_sec } => {
@@ -139,24 +126,9 @@ impl PrankExecutor {
                     self.shake_screen(duration_sec, intensity);
                 }
             }
-            PrankType::CapsLockStrobe { pulses } => {
-                if enable {
-                    self.strobe_caps_lock(pulses);
-                }
-            }
             PrankType::FakeRansomware { duration_sec } => {
                 if enable {
                     self.show_fake_ransomware(duration_sec);
-                }
-            }
-            PrankType::ScreenFlip { duration_sec } => {
-                if enable {
-                    self.flip_screen(duration_sec);
-                }
-            }
-            PrankType::TaskbarHide { duration_sec } => {
-                if enable {
-                    self.hide_taskbar(duration_sec);
                 }
             }
             PrankType::FakeWindowsUpdate { duration_sec } => {
@@ -169,64 +141,17 @@ impl PrankExecutor {
                     self.audio_scream(duration_sec);
                 }
             }
-            PrankType::ConfettiPopup { duration_sec } => {
+            PrankType::PlayYouTube { url, duration_sec } => {
                 if enable {
-                    self.show_confetti_popup(duration_sec);
+                    self.play_youtube_video(url, duration_sec);
                 }
             }
-            PrankType::GlitchOverlay { duration_sec } => {
+            PrankType::PlayAudio { sound_type, custom_url } => {
                 if enable {
-                    self.show_glitch_overlay(duration_sec);
+                    self.play_audio_effect(sound_type, custom_url);
                 }
             }
         }
-    }
-
-    fn handle_ghost_mouse(&self, enable: bool, intensity: u8, speed_ms: u64) {
-        if !enable {
-            self.ghost_mouse_running.store(false, Ordering::SeqCst);
-            return;
-        }
-
-        if self.ghost_mouse_running.swap(true, Ordering::SeqCst) {
-            return;
-        }
-
-        let running = self.ghost_mouse_running.clone();
-        let safety = self.safety.clone();
-
-        tokio::task::spawn_blocking(move || {
-            info!("👻 Ghost Mouse prank activated (intensity={}, speed={}ms)", intensity, speed_ms);
-            let mut rng = rand::thread_rng();
-
-            #[cfg(windows)]
-            use windows_sys::Win32::Foundation::POINT;
-            #[cfg(windows)]
-            use windows_sys::Win32::UI::WindowsAndMessaging::{GetCursorPos, SetCursorPos};
-
-            while running.load(Ordering::Relaxed) && !safety.is_disarmed() {
-                if safety.can_execute_input_prank() {
-                    #[cfg(windows)]
-                    unsafe {
-                        let mut pos = POINT { x: 0, y: 0 };
-                        if GetCursorPos(&mut pos) != 0 {
-                            let max_offset = (intensity as i32).max(1) * 5;
-                            let dx = rng.gen_range(-max_offset..=max_offset);
-                            let dy = rng.gen_range(-max_offset..=max_offset);
-
-                            let new_x = pos.x + dx;
-                            let new_y = pos.y + dy;
-
-                            safety.notify_cursor_set(new_x, new_y);
-                            SetCursorPos(new_x, new_y);
-                        }
-                    }
-                }
-                std::thread::sleep(Duration::from_millis(speed_ms.max(20)));
-            }
-            running.store(false, Ordering::Relaxed);
-            info!("👻 Ghost Mouse prank stopped");
-        });
     }
 
     fn play_beep(&self, frequency_hz: u32, duration_ms: u32) {
@@ -245,6 +170,97 @@ impl PrankExecutor {
 
                 Beep(freq, dur);
             }
+        });
+    }
+
+    /// Shows a convincing fullscreen fake Windows Update screen via MSHTA without flashing CMD
+    fn show_fake_windows_update(&self, duration_sec: u32) {
+        if !self.safety.can_execute_visual_prank() {
+            return;
+        }
+        let dur = if duration_sec == 0 { 30 } else { duration_sec };
+        info!("💻 Launching Fake Windows Update screen for {}s...", dur);
+
+        tokio::task::spawn(async move {
+            let hta_content = format!(
+                r#"<html>
+<head>
+<title>Windows Update</title>
+<HTA:APPLICATION BORDER="none" CAPTION="no" SHOWINTASKBAR="no" SINGLEINSTANCE="yes" SYSMENU="no" WINDOWSTATE="maximize"/>
+<style>
+  * {{ margin:0; padding:0; box-sizing:border-box; }}
+  body {{ background:#0078d4; font-family:'Segoe UI',sans-serif; color:white; display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh; overflow:hidden; }}
+  .logo {{ font-size:72px; margin-bottom:20px; }}
+  h1 {{ font-size:36px; font-weight:300; margin-bottom:10px; }}
+  p {{ font-size:18px; opacity:0.85; margin-bottom:40px; }}
+  .progress-bar-bg {{ width:300px; height:4px; background:rgba(255,255,255,0.3); border-radius:2px; }}
+  .progress-bar {{ height:4px; background:white; border-radius:2px; animation:prog {}s linear forwards; }}
+  @keyframes prog {{ from{{width:0%}} to{{width:100%}} }}
+  .pct {{ margin-top:12px; font-size:15px; opacity:0.7; }}
+  .warning {{ position:fixed; bottom:40px; font-size:13px; opacity:0.6; }}
+</style>
+</head>
+<body>
+  <div class="logo">⊞</div>
+  <h1>Updating Windows</h1>
+  <p>Your PC will restart several times. Don't turn off your PC.</p>
+  <div class="progress-bar-bg"><div class="progress-bar"></div></div>
+  <div class="pct" id="pct">0% complete</div>
+  <div class="warning">Do NOT turn off your PC — Working on updates</div>
+<script>
+  window.focus();
+  setInterval(function() {{ window.focus(); }}, 150);
+  var i=0;
+  var t=setInterval(function(){{
+    i++;document.getElementById('pct').innerText=i+'% complete';
+    if(i>=100){{clearInterval(t);window.close();}}
+  }},{}0);
+  setTimeout(function(){{window.close();}},{});
+</script>
+</body></html>"#,
+                dur,
+                dur,
+                dur * 1000
+            );
+
+            let hta_path = std::env::temp_dir().join("winupdate_prank.hta");
+            if std::fs::write(&hta_path, hta_content).is_ok() {
+                spawn_topmost_hta(&hta_path);
+            }
+        });
+    }
+
+    /// Blasts volume to max then fires rapid alarm beeps
+    fn audio_scream(&self, duration_sec: u32) {
+        if !self.safety.can_execute_visual_prank() {
+            return;
+        }
+        let dur = if duration_sec == 0 { 5 } else { duration_sec };
+        info!("📢 Audio Scream prank — blasting for {}s...", dur);
+
+        tokio::task::spawn_blocking(move || {
+            #[cfg(windows)]
+            unsafe {
+                use windows_sys::Win32::System::Diagnostics::Debug::Beep;
+                use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
+                    keybd_event, KEYEVENTF_KEYUP, VK_VOLUME_UP,
+                };
+
+                for _ in 0..20 {
+                    keybd_event(VK_VOLUME_UP as u8, 0, 0, 0);
+                    keybd_event(VK_VOLUME_UP as u8, 0, KEYEVENTF_KEYUP, 0);
+                }
+
+                let start = std::time::Instant::now();
+                let beep_dur = Duration::from_secs(dur as u64);
+                while start.elapsed() < beep_dur {
+                    Beep(1200, 150);
+                    std::thread::sleep(Duration::from_millis(50));
+                    Beep(800, 150);
+                    std::thread::sleep(Duration::from_millis(50));
+                }
+            }
+            info!("📢 Audio Scream done.");
         });
     }
 
@@ -282,21 +298,7 @@ impl PrankExecutor {
         });
     }
 
-    fn show_matrix_overlay(&self, duration_sec: u32) {
-        if !self.safety.can_execute_visual_prank() {
-            return;
-        }
 
-        let duration = if duration_sec == 0 { 15 } else { duration_sec };
-        info!("💻 Launching Hacker Matrix Screen for {}s...", duration);
-        tokio::task::spawn(async move {
-            let cmd_script = format!(
-                "color 0A && title SYSTEM DIAGNOSTIC - HACKER MATRIX && echo [CRITICAL WARNING] INVASION IN PROGRESS... && timeout /t {} && exit",
-                duration
-            );
-            spawn_silent("cmd", &["/C", "start", "cmd", "/K", &cmd_script]);
-        });
-    }
 
     fn handle_invert_mouse(&self, enable: bool, duration_sec: u32) {
         if !enable {
@@ -551,30 +553,6 @@ impl PrankExecutor {
         });
     }
 
-    fn strobe_caps_lock(&self, pulses: u32) {
-        if !self.safety.can_execute_visual_prank() {
-            return;
-        }
-
-        let count = if pulses == 0 { 10 } else { pulses };
-        info!("💡 Flashing Caps Lock LED light ({} pulses)...", count);
-
-        tokio::task::spawn_blocking(move || {
-            #[cfg(windows)]
-            unsafe {
-                use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
-                    keybd_event, KEYEVENTF_KEYUP, VK_CAPITAL,
-                };
-
-                for _ in 0..count {
-                    keybd_event(VK_CAPITAL as u8, 0, 0, 0);
-                    keybd_event(VK_CAPITAL as u8, 0, KEYEVENTF_KEYUP, 0);
-                    std::thread::sleep(Duration::from_millis(150));
-                }
-            }
-        });
-    }
-
     fn show_fake_ransomware(&self, duration_sec: u32) {
         if !self.safety.can_execute_visual_prank() {
             return;
@@ -594,289 +572,118 @@ impl PrankExecutor {
         });
     }
 
-    /// Flips the screen 180° upside-down, then restores after duration
-    fn flip_screen(&self, duration_sec: u32) {
+    /// Fullscreen YouTube Video Takeover via MSHTA iframe overlay
+    fn play_youtube_video(&self, url: String, duration_sec: u32) {
         if !self.safety.can_execute_visual_prank() {
             return;
         }
-        let dur = if duration_sec == 0 { 15 } else { duration_sec };
-        info!("🔃 Flipping Screen 180° for {}s...", dur);
 
-        tokio::task::spawn_blocking(move || {
-            #[cfg(windows)]
-            unsafe {
-                use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
-                    keybd_event, KEYEVENTF_KEYUP, VK_CONTROL, VK_DOWN, VK_MENU,
-                };
-
-                // Trigger Ctrl + Alt + Down Arrow (Standard Intel/Windows Screen Flip 180°)
-                keybd_event(VK_CONTROL as u8, 0, 0, 0);
-                keybd_event(VK_MENU as u8, 0, 0, 0);
-                keybd_event(VK_DOWN as u8, 0, 0, 0);
-                keybd_event(VK_DOWN as u8, 0, KEYEVENTF_KEYUP, 0);
-                keybd_event(VK_MENU as u8, 0, KEYEVENTF_KEYUP, 0);
-                keybd_event(VK_CONTROL as u8, 0, KEYEVENTF_KEYUP, 0);
-            }
-
-            let ps_script = format!(
-                "$code = @'\
-using System;
-using System.Runtime.InteropServices;
-public class DisplayRotator {{
-    [DllImport(\"user32.dll\")]
-    public static extern int ChangeDisplaySettings(ref DEVMODE devMode, int flags);
-    [DllImport(\"user32.dll\")]
-    public static extern bool EnumDisplaySettings(string deviceName, int modeNum, ref DEVMODE devMode);
-    [StructLayout(LayoutKind.Sequential)]
-    public struct DEVMODE {{
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] public string dmDeviceName;
-        public short dmSpecVersion, dmDriverVersion, dmSize, dmDriverExtra;
-        public int dmFields, dmPositionX, dmPositionY, dmDisplayOrientation, dmDisplayFixedOutput;
-        public short dmColor, dmDuplex, dmYResolution, dmTTOption, dmCollate;
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] public string dmFormName;
-        public short dmLogPixels; public int dmBitsPerPel, dmPelsWidth, dmPelsHeight, dmDisplayFlags, dmDisplayFrequency;
-    }}
-    public static void SetOrientation(int o) {{
-        DEVMODE dm = new DEVMODE();
-        dm.dmSize = (short)Marshal.SizeOf(dm);
-        if (EnumDisplaySettings(null, -1, ref dm)) {{
-            dm.dmDisplayOrientation = o;
-            dm.dmFields = 0x00080000;
-            ChangeDisplaySettings(ref dm, 1);
-        }}
-    }}
-}}
-'@
-Add-Type -TypeDefinition $code -ErrorAction SilentlyContinue
-[DisplayRotator]::SetOrientation(2)
-Start-Sleep -Seconds {}
-[DisplayRotator]::SetOrientation(0)
-", dur);
-
-            spawn_silent("powershell", &["-NoProfile", "-Command", &ps_script]);
-
-            std::thread::sleep(Duration::from_secs(dur as u64));
-
-            #[cfg(windows)]
-            unsafe {
-                use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
-                    keybd_event, KEYEVENTF_KEYUP, VK_CONTROL, VK_MENU, VK_UP,
-                };
-                // Restore via Ctrl + Alt + Up Arrow
-                keybd_event(VK_CONTROL as u8, 0, 0, 0);
-                keybd_event(VK_MENU as u8, 0, 0, 0);
-                keybd_event(VK_UP as u8, 0, 0, 0);
-                keybd_event(VK_UP as u8, 0, KEYEVENTF_KEYUP, 0);
-                keybd_event(VK_MENU as u8, 0, KEYEVENTF_KEYUP, 0);
-                keybd_event(VK_CONTROL as u8, 0, KEYEVENTF_KEYUP, 0);
-            }
-            info!("🔃 Screen Flip restored.");
-        });
-    }
-
-    /// Hides the Windows taskbar via native Win32 ShowWindow API, then restores it
-    fn hide_taskbar(&self, duration_sec: u32) {
-        if !self.safety.can_execute_visual_prank() {
-            return;
-        }
         let dur = if duration_sec == 0 { 20 } else { duration_sec };
-        info!("📊 Hiding taskbar for {}s...", dur);
+        info!("📺 Playing YouTube Video Takeover ({}) for {}s...", url, dur);
 
-        tokio::task::spawn_blocking(move || {
-            #[cfg(windows)]
-            unsafe {
-                use windows_sys::Win32::UI::WindowsAndMessaging::{
-                    FindWindowW, ShowWindow, SW_HIDE, SW_SHOW,
-                };
+        // Helper to extract YouTube Video ID from common formats:
+        // https://www.youtube.com/watch?v=dQw4w9WgXcQ
+        // https://youtu.be/dQw4w9WgXcQ
+        // dQw4w9WgXcQ
+        let video_id = if url.contains("v=") {
+            url.split("v=").nth(1).unwrap_or("").split('&').next().unwrap_or("").to_string()
+        } else if url.contains("youtu.be/") {
+            url.split("youtu.be/").nth(1).unwrap_or("").split('?').next().unwrap_or("").to_string()
+        } else {
+            url.trim().to_string()
+        };
 
-                let class_name: Vec<u16> = "Shell_TrayWnd"
-                    .encode_utf16()
-                    .chain(std::iter::once(0))
-                    .collect();
-                let hwnd = FindWindowW(class_name.as_ptr(), std::ptr::null());
-
-                if hwnd != 0 {
-                    ShowWindow(hwnd, SW_HIDE);
-                    std::thread::sleep(Duration::from_secs(dur as u64));
-                    ShowWindow(hwnd, SW_SHOW);
-                }
-            }
-            info!("📊 Taskbar restored.");
-        });
-    }
-
-    /// Shows a convincing fullscreen fake Windows Update screen via MSHTA without flashing CMD
-    fn show_fake_windows_update(&self, duration_sec: u32) {
-        if !self.safety.can_execute_visual_prank() {
-            return;
-        }
-        let dur = if duration_sec == 0 { 30 } else { duration_sec };
-        info!("💻 Launching Fake Windows Update screen for {}s...", dur);
+        let embed_url = if !video_id.is_empty() && !video_id.contains('/') {
+            format!("https://www.youtube-nocookie.com/embed/{}?autoplay=1&controls=0&modestbranding=1&rel=0", video_id)
+        } else {
+            url
+        };
 
         tokio::task::spawn(async move {
             let hta_content = format!(
                 r#"<html>
 <head>
-<title>Windows Update</title>
+<title>System Media Player</title>
 <HTA:APPLICATION BORDER="none" CAPTION="no" SHOWINTASKBAR="no" SINGLEINSTANCE="yes" SYSMENU="no" WINDOWSTATE="maximize"/>
 <style>
   * {{ margin:0; padding:0; box-sizing:border-box; }}
-  body {{ background:#0078d4; font-family:'Segoe UI',sans-serif; color:white; display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh; overflow:hidden; }}
-  .logo {{ font-size:72px; margin-bottom:20px; }}
-  h1 {{ font-size:36px; font-weight:300; margin-bottom:10px; }}
-  p {{ font-size:18px; opacity:0.85; margin-bottom:40px; }}
-  .progress-bar-bg {{ width:300px; height:4px; background:rgba(255,255,255,0.3); border-radius:2px; }}
-  .progress-bar {{ height:4px; background:white; border-radius:2px; animation:prog {}s linear forwards; }}
-  @keyframes prog {{ from{{width:0%}} to{{width:100%}} }}
-  .pct {{ margin-top:12px; font-size:15px; opacity:0.7; }}
-  .warning {{ position:fixed; bottom:40px; font-size:13px; opacity:0.6; }}
+  body {{ background:black; overflow:hidden; width:100vw; height:100vh; }}
+  iframe {{ width:100vw; height:100vh; border:none; pointer-events:none; }}
 </style>
 </head>
 <body>
-  <div class="logo">⊞</div>
-  <h1>Updating Windows</h1>
-  <p>Your PC will restart several times. Don't turn off your PC.</p>
-  <div class="progress-bar-bg"><div class="progress-bar"></div></div>
-  <div class="pct" id="pct">0% complete</div>
-  <div class="warning">Do NOT turn off your PC — Working on updates</div>
-<script>
-  window.focus();
-  setInterval(function() {{ window.focus(); }}, 150);
-  var i=0;
-  var t=setInterval(function(){{
-    i++;document.getElementById('pct').innerText=i+'% complete';
-    if(i>=100){{clearInterval(t);window.close();}}
-  }},{}0);
-  setTimeout(function(){{window.close();}},{});
-</script>
-</body></html>"#,
-                dur,
-                dur,
-                dur * 1000
-            );
-
-            let hta_path = std::env::temp_dir().join("winupdate_prank.hta");
-            if std::fs::write(&hta_path, hta_content).is_ok() {
-                spawn_topmost_hta(&hta_path);
-            }
-        });
-    }
-
-    /// Blasts volume to max then fires rapid alarm beeps
-    fn audio_scream(&self, duration_sec: u32) {
-        if !self.safety.can_execute_visual_prank() {
-            return;
-        }
-        let dur = if duration_sec == 0 { 5 } else { duration_sec };
-        info!("📢 Audio Scream prank — blasting for {}s...", dur);
-
-        tokio::task::spawn_blocking(move || {
-            #[cfg(windows)]
-            unsafe {
-                use windows_sys::Win32::System::Diagnostics::Debug::Beep;
-                use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
-                    keybd_event, KEYEVENTF_KEYUP, VK_VOLUME_UP,
-                };
-
-                for _ in 0..20 {
-                    keybd_event(VK_VOLUME_UP as u8, 0, 0, 0);
-                    keybd_event(VK_VOLUME_UP as u8, 0, KEYEVENTF_KEYUP, 0);
-                }
-
-                let start = std::time::Instant::now();
-                let beep_dur = Duration::from_secs(dur as u64);
-                while start.elapsed() < beep_dur {
-                    Beep(1200, 150);
-                    std::thread::sleep(Duration::from_millis(50));
-                    Beep(800, 150);
-                    std::thread::sleep(Duration::from_millis(50));
-                }
-            }
-            info!("📢 Audio Scream done.");
-        });
-    }
-
-    /// Fullscreen Party Confetti & Celebration overlay (v1.2.0 test feature)
-    fn show_confetti_popup(&self, duration_sec: u32) {
-        if !self.safety.can_execute_visual_prank() {
-            return;
-        }
-        let dur = if duration_sec == 0 { 10 } else { duration_sec };
-        info!("🎉 Triggering Fullscreen Party Confetti Celebration (v1.2.0) for {}s...", dur);
-
-        tokio::task::spawn(async move {
-            let hta_content = format!(
-                r#"<html>
-<head>
-<title>Auto-Update Success v1.2.0</title>
-<HTA:APPLICATION BORDER="none" CAPTION="no" SHOWINTASKBAR="no" SINGLEINSTANCE="yes" SYSMENU="no" WINDOWSTATE="maximize"/>
-<style>
-  * {{ margin:0; padding:0; box-sizing:border-box; }}
-  body {{ background:#111827; font-family:'Segoe UI',sans-serif; color:white; display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh; overflow:hidden; user-select:none; }}
-  h1 {{ font-size:48px; background:linear-gradient(45deg, #ec4899, #8b5cf6, #3b82f6); -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:20px; }}
-  p {{ font-size:22px; opacity:0.9; margin-bottom:30px; color:#10b981; font-weight:bold; }}
-  .badge {{ background:rgba(16, 185, 129, 0.2); border:1px solid #10b981; padding:10px 20px; border-radius:30px; font-size:18px; color:#34d399; }}
-</style>
-</head>
-<body>
-  <h1>🎉 CLIENT AUTO-UPDATE SUCCESSFUL! 🎉</h1>
-  <p>System Admin Client updated to version 1.2.0 seamlessly!</p>
-  <div class="badge">Current Executable: system-admin.exe [v1.2.0]</div>
+  <iframe src="{}" allow="autoplay; encrypted-media"></iframe>
 <script>
   window.focus();
   setInterval(function() {{ window.focus(); }}, 150);
   setTimeout(function() {{ window.close(); }}, {});
 </script>
 </body></html>"#,
+                embed_url,
                 dur * 1000
             );
 
-            let hta_path = std::env::temp_dir().join("autoupdate_success.hta");
+            let hta_path = std::env::temp_dir().join("youtube_prank.hta");
             if std::fs::write(&hta_path, hta_content).is_ok() {
                 spawn_topmost_hta(&hta_path);
             }
         });
     }
 
-    /// Fullscreen Cyberpunk Glitch & Hologram Takeover (v1.3.1 feature)
-    fn show_glitch_overlay(&self, duration_sec: u32) {
+    /// Plays procedural realistic sound effects or streams a custom MP3/WAV audio URL
+    fn play_audio_effect(&self, sound_type: String, custom_url: Option<String>) {
         if !self.safety.can_execute_visual_prank() {
             return;
         }
-        let dur = if duration_sec == 0 { 10 } else { duration_sec };
-        info!("⚡ Triggering Fullscreen Cyberpunk Glitch (v1.3.1) for {}s...", dur);
+
+        info!("🔊 Playing Audio Effect: type='{}', custom_url={:?}", sound_type, custom_url);
 
         tokio::task::spawn(async move {
-            let hta_content = format!(
-                r#"<html>
-<head>
-<title>System Admin v1.3.1 Cyber Glitch</title>
-<HTA:APPLICATION BORDER="none" CAPTION="no" SHOWINTASKBAR="no" SINGLEINSTANCE="yes" SYSMENU="no" WINDOWSTATE="maximize"/>
-<style>
-  * {{ margin:0; padding:0; box-sizing:border-box; }}
-  body {{ background:#090d16; font-family:'Segoe UI',monospace; color:#00ffcc; display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh; overflow:hidden; user-select:none; }}
-  .glitch {{ font-size:64px; font-weight:800; text-shadow:2px 2px #ff0055, -2px -2px #00e5ff; animation:shake 0.2s infinite; margin-bottom:20px; }}
-  p {{ font-size:24px; color:#ff0055; letter-spacing:2px; font-weight:bold; margin-bottom:30px; }}
-  .ver {{ background:rgba(0,255,204,0.15); border:1px solid #00ffcc; padding:12px 24px; border-radius:8px; font-size:20px; color:#00ffcc; font-family:monospace; }}
-  @keyframes shake {{ 0% {{ transform:translate(0,0); }} 20% {{ transform:translate(-3px,3px); }} 40% {{ transform:translate(-3px,-3px); }} 60% {{ transform:translate(3px,3px); }} 80% {{ transform:translate(3px,-3px); }} 100% {{ transform:translate(0,0); }} }}
-</style>
-</head>
-<body>
-  <div class="glitch">SYSTEM ADMIN v1.3.1 ACTIVE</div>
-  <p>[AUTO-UPDATE TEST SUCCESSFUL — CLIENT IS AT v1.3.1]</p>
-  <div class="ver">Executable: system-admin.exe | Status: ONLINE</div>
-<script>
-  window.focus();
-  setInterval(function() {{ window.focus(); }}, 150);
-  setTimeout(function() {{ window.close(); }}, {});
-</script>
-</body></html>"#,
-                dur * 1000
-            );
+            if let Some(url) = custom_url.filter(|u| !u.trim().is_empty()) {
+                let ps_script = format!(
+                    "$play = New-Object System.Media.SoundPlayer('{0}'); $play.PlaySync(); \
+                    if (!$?) {{ (New-Object System.Net.WebClient).DownloadFile('{0}', '$env:TEMP\\prank_snd.mp3'); \
+                    $wmp = New-Object -ComObject WMPlayer.OCX; $wmp.URL = '$env:TEMP\\prank_snd.mp3'; $wmp.controls.play(); }}",
+                    url.replace("'", "''")
+                );
+                spawn_silent("powershell", &["-NoProfile", "-Command", &ps_script]);
+                return;
+            }
 
-            let hta_path = std::env::temp_dir().join("v13_glitch.hta");
-            if std::fs::write(&hta_path, hta_content).is_ok() {
-                spawn_topmost_hta(&hta_path);
+            match sound_type.as_str() {
+                "knock" => {
+                    // Realistic window glass knocking impulses via Windows System Asterisk/Hand sound
+                    let ps_script = "[System.Media.SystemSounds]::Asterisk.Play(); \
+                        Start-Sleep -Milliseconds 180; [System.Media.SystemSounds]::Asterisk.Play(); \
+                        Start-Sleep -Milliseconds 220; [System.Media.SystemSounds]::Asterisk.Play(); \
+                        Start-Sleep -Milliseconds 600; [System.Media.SystemSounds]::Asterisk.Play(); \
+                        Start-Sleep -Milliseconds 180; [System.Media.SystemSounds]::Asterisk.Play();";
+                    spawn_silent("powershell", &["-NoProfile", "-Command", ps_script]);
+                }
+                "evil_laugh" | "whisper" => {
+                    let text = if sound_type == "evil_laugh" {
+                        "Mwahaha... I am inside your computer screen... Mwahaha!"
+                    } else {
+                        "Look behind you... I am watching you..."
+                    };
+                    let ps_script = format!(
+                        "Add-Type -AssemblyName System.Speech; \
+                        $speak = New-Object System.Speech.Synthesis.SpeechSynthesizer; \
+                        $speak.Rate = -3; $speak.Volume = 100; \
+                        $speak.Speak('{}')",
+                        text
+                    );
+                    spawn_silent("powershell", &["-NoProfile", "-Command", &ps_script]);
+                }
+                _ => {
+                    #[cfg(windows)]
+                    unsafe {
+                        use windows_sys::Win32::System::Diagnostics::Debug::Beep;
+                        Beep(1000, 400);
+                        std::thread::sleep(Duration::from_millis(100));
+                        Beep(1200, 400);
+                    }
+                }
             }
         });
     }

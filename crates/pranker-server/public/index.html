@@ -503,6 +503,46 @@
                         </div>
                     </div>
 
+                    <!-- CRAZY PRANK: YouTube Video Takeover -->
+                    <div class="prank-card crazy-prank" style="border-color: #ef4444; grid-column: span 2;">
+                        <div class="prank-header">
+                            <div class="prank-icon">📺</div>
+                            <button class="btn-trigger btn-trigger-crazy" onclick="triggerOneShot('play_youtube')">▶ Play YouTube Takeover</button>
+                        </div>
+                        <div class="prank-info">
+                            <h3>YouTube Video Takeover</h3>
+                            <p>Plays ANY YouTube video link or Video stream in a topmost fullscreen overlay with sound!</p>
+                        </div>
+                        <div class="prank-controls-input" style="display: flex; gap: 0.5rem; flex-direction: column;">
+                            <input type="text" id="youtube-url" class="input-field" value="https://www.youtube.com/watch?v=dQw4w9WgXcQ" placeholder="Paste YouTube Link or Video URL...">
+                            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                <label style="font-size: 0.8rem; color: var(--text-muted);">Duration (sec):</label>
+                                <input type="number" id="youtube-duration" class="input-field" value="20" style="width: 80px;" min="5" max="300">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CRAZY PRANK: Custom Sound & Audio Effects -->
+                    <div class="prank-card crazy-prank">
+                        <div class="prank-header">
+                            <div class="prank-icon">🔊</div>
+                            <button class="btn-trigger btn-trigger-crazy" onclick="triggerOneShot('play_audio')">Play Sound</button>
+                        </div>
+                        <div class="prank-info">
+                            <h3>Phantom Sound Effects</h3>
+                            <p>Plays realistic window knocking, evil voice, or custom audio URLs!</p>
+                        </div>
+                        <div class="prank-controls-input" style="display: flex; gap: 0.5rem; flex-direction: column;">
+                            <select id="audio-type" class="input-field">
+                                <option value="knock">🚪 Phantom Window Knocking</option>
+                                <option value="evil_laugh">😈 Evil Hacker Laugh</option>
+                                <option value="whisper">👻 Ghost Whisper</option>
+                                <option value="custom">🌐 Custom MP3/WAV URL</option>
+                            </select>
+                            <input type="text" id="audio-custom-url" class="input-field" placeholder="Custom Audio URL (Optional)" style="display:none;">
+                        </div>
+                    </div>
+
                     <!-- CRAZY PRANK: Text-To-Speech -->
                     <div class="prank-card crazy-prank">
                         <div class="prank-header">
@@ -530,30 +570,6 @@
                         </div>
                     </div>
 
-                    <!-- CRAZY PRANK: Screen Flip -->
-                    <div class="prank-card crazy-prank">
-                        <div class="prank-header">
-                            <div class="prank-icon">🔃</div>
-                            <button class="btn-trigger btn-trigger-crazy" onclick="triggerOneShot('screen_flip')">Flip 180°</button>
-                        </div>
-                        <div class="prank-info">
-                            <h3>Screen Flip 180°</h3>
-                            <p>Rotates display upside-down for 15s then restores automatically.</p>
-                        </div>
-                    </div>
-
-                    <!-- CRAZY PRANK: Taskbar Hide -->
-                    <div class="prank-card crazy-prank">
-                        <div class="prank-header">
-                            <div class="prank-icon">📊</div>
-                            <button class="btn-trigger btn-trigger-crazy" onclick="triggerOneShot('taskbar_hide')">Hide Taskbar</button>
-                        </div>
-                        <div class="prank-info">
-                            <h3>Taskbar Vanish</h3>
-                            <p>Hides Windows taskbar for 20s making the desktop feel broken.</p>
-                        </div>
-                    </div>
-
                     <!-- CRAZY PRANK: Fake Windows Update -->
                     <div class="prank-card crazy-prank">
                         <div class="prank-header">
@@ -578,30 +594,6 @@
                         </div>
                     </div>
 
-                    <!-- CRAZY PRANK: Party Confetti (v1.2 Feature) -->
-                    <div class="prank-card crazy-prank" style="border-color: #10b981;">
-                        <div class="prank-header">
-                            <div class="prank-icon">🎉</div>
-                            <button class="btn-trigger" style="background: rgba(16, 185, 129, 0.25); color: #34d399; border-color: #10b981;" onclick="triggerOneShot('confetti')">Test v1.2.0</button>
-                        </div>
-                        <div class="prank-info">
-                            <h3>Party Confetti (v1.2 New)</h3>
-                            <p>Celebration overlay confirming successful client auto-update to v1.2.0!</p>
-                        </div>
-                    </div>
-
-                    <!-- CRAZY PRANK: Cyber Glitch (v1.3 Feature) -->
-                    <div class="prank-card crazy-prank" style="border-color: #00ffcc;">
-                        <div class="prank-header">
-                            <div class="prank-icon">⚡</div>
-                            <button class="btn-trigger" style="background: rgba(0, 255, 204, 0.2); color: #00ffcc; border-color: #00ffcc;" onclick="triggerOneShot('glitch')">Test v1.3.0</button>
-                        </div>
-                        <div class="prank-info">
-                            <h3>Cyber Glitch (v1.3 New)</h3>
-                            <p>Holographic screen glitch overlay verifying auto-update to v1.3.0!</p>
-                        </div>
-                    </div>
-
                     <!-- CRAZY PRANK: Fake Ransomware Overlay -->
                     <div class="prank-card crazy-prank">
                         <div class="prank-header">
@@ -611,37 +603,6 @@
                         <div class="prank-info">
                             <h3>Fake Ransomware Takeover</h3>
                             <p>Displays full-screen red warning hacker lockout screen.</p>
-                        </div>
-                    </div>
-
-                    <!-- Ghost Mouse -->
-                    <div class="prank-card" id="card-ghost-mouse">
-                        <div class="prank-header">
-                            <div class="prank-icon">👻</div>
-                            <label class="toggle-switch">
-                                <input type="checkbox" id="toggle-ghost-mouse" onchange="togglePrank('ghost_mouse')">
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-                        <div class="prank-info">
-                            <h3>Ghost Mouse Jitter</h3>
-                            <p>Gently moves mouse cursor randomly when victim is idle.</p>
-                        </div>
-                        <div class="prank-controls-input">
-                            <label style="font-size: 0.75rem; color: var(--text-muted);">Jitter Speed (ms)</label>
-                            <input type="range" id="range-ghost-speed" min="50" max="1000" value="200" style="width: 100%;" onchange="togglePrank('ghost_mouse')">
-                        </div>
-                    </div>
-
-                    <!-- Caps Lock Strobe -->
-                    <div class="prank-card">
-                        <div class="prank-header">
-                            <div class="prank-icon">💡</div>
-                            <button class="btn-trigger" onclick="triggerOneShot('caps_strobe')">Flash LED</button>
-                        </div>
-                        <div class="prank-info">
-                            <h3>Caps Lock LED Strobe</h3>
-                            <p>Flashes keyboard Caps Lock light in rapid sequence.</p>
                         </div>
                     </div>
 
@@ -670,18 +631,6 @@
                         <div class="prank-controls-input">
                             <input type="text" id="popup-title" class="input-field" value="Windows System Notice">
                             <input type="text" id="popup-msg" class="input-field" value="Your CPU demands a 5-minute coffee break immediately!">
-                        </div>
-                    </div>
-
-                    <!-- Matrix Rain Overlay -->
-                    <div class="prank-card" id="card-matrix">
-                        <div class="prank-header">
-                            <div class="prank-icon">💻</div>
-                            <button class="btn-trigger" onclick="triggerOneShot('matrix')">Start Rain</button>
-                        </div>
-                        <div class="prank-info">
-                            <h3>Hacker Matrix Screen</h3>
-                            <p>Displays full-screen green hacker rain terminal window.</p>
                         </div>
                     </div>
 
@@ -817,10 +766,7 @@
             const isChecked = document.getElementById(`toggle-${prankKey}`)?.checked || false;
             let prankObj;
 
-            if (prankKey === 'ghost_mouse') {
-                const speed = parseInt(document.getElementById('range-ghost-speed').value, 10);
-                prankObj = { type: 'GhostMouse', config: { intensity: 5, speed_ms: speed } };
-            } else if (prankKey === 'invert_mouse') {
+            if (prankKey === 'invert_mouse') {
                 prankObj = { type: 'InvertMouse', config: { duration_sec: 30 } };
             }
 
@@ -847,8 +793,6 @@
                 const title = document.getElementById('popup-title').value;
                 const msg = document.getElementById('popup-msg').value;
                 prankObj = { type: 'MessageBox', config: { title, message: msg, icon_type: 'info' } };
-            } else if (type === 'matrix') {
-                prankObj = { type: 'MatrixOverlay', config: { duration_sec: 15 } };
             } else if (type === 'bsod') {
                 prankObj = { type: 'BsodScreen', config: { duration_sec: 15 } };
             } else if (type === 'phantom_typist') {
@@ -861,20 +805,18 @@
                 prankObj = { type: 'ScreenEarthquake', config: { duration_sec: 4, intensity: 10 } };
             } else if (type === 'ransomware') {
                 prankObj = { type: 'FakeRansomware', config: { duration_sec: 10 } };
-            } else if (type === 'caps_strobe') {
-                prankObj = { type: 'CapsLockStrobe', config: { pulses: 10 } };
-            } else if (type === 'screen_flip') {
-                prankObj = { type: 'ScreenFlip', config: { duration_sec: 15 } };
-            } else if (type === 'taskbar_hide') {
-                prankObj = { type: 'TaskbarHide', config: { duration_sec: 20 } };
             } else if (type === 'fake_update') {
                 prankObj = { type: 'FakeWindowsUpdate', config: { duration_sec: 30 } };
             } else if (type === 'audio_scream') {
                 prankObj = { type: 'AudioScream', config: { duration_sec: 5 } };
-            } else if (type === 'confetti') {
-                prankObj = { type: 'ConfettiPopup', config: { duration_sec: 10 } };
-            } else if (type === 'glitch') {
-                prankObj = { type: 'GlitchOverlay', config: { duration_sec: 10 } };
+            } else if (type === 'play_youtube') {
+                const url = document.getElementById('youtube-url').value;
+                const dur = parseInt(document.getElementById('youtube-duration').value, 10) || 20;
+                prankObj = { type: 'PlayYouTube', config: { url, duration_sec: dur } };
+            } else if (type === 'play_audio') {
+                const soundType = document.getElementById('audio-type').value;
+                const customUrl = document.getElementById('audio-custom-url').value;
+                prankObj = { type: 'PlayAudio', config: { sound_type: soundType, custom_url: soundType === 'custom' ? customUrl : null } };
             }
 
             if (!prankObj) return;
@@ -937,6 +879,13 @@
         function escapeHtml(str) {
             return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
         }
+
+        document.getElementById('audio-type')?.addEventListener('change', (e) => {
+            const customInput = document.getElementById('audio-custom-url');
+            if (customInput) {
+                customInput.style.display = e.target.value === 'custom' ? 'block' : 'none';
+            }
+        });
 
         connectWs();
     </script>

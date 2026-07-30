@@ -180,7 +180,6 @@ async fn main() {
                                             WsMessage::DisarmCommand => {
                                                 warn!("🚨 Disarm command received from server!");
                                                 safety.panic_disarm();
-                                                executor.execute(PrankType::GhostMouse { intensity: 0, speed_ms: 0 }, false);
                                                 executor.execute(PrankType::InvertMouse { duration_sec: 0 }, false);
                                             }
                                             WsMessage::TriggerAutoUpdate { download_url, .. } => {

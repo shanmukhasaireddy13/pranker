@@ -3,11 +3,6 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "type", content = "config")]
 pub enum PrankType {
-    /// Subtle random mouse movement
-    GhostMouse {
-        intensity: u8,   // 1 to 10 scale
-        speed_ms: u64,   // Delay between jitters
-    },
     /// System alert beep sound
     BeepAlert {
         frequency_hz: u32,
@@ -19,10 +14,6 @@ pub enum PrankType {
         title: String,
         message: String,
         icon_type: String, // "info", "warning", "error"
-    },
-    /// Matrix rain harmless overlay window
-    MatrixOverlay {
-        duration_sec: u32,
     },
     /// Invert mouse axis temporarily
     InvertMouse {
@@ -49,20 +40,8 @@ pub enum PrankType {
         duration_sec: u32,
         intensity: u8,
     },
-    /// Flashes keyboard Caps Lock LED light
-    CapsLockStrobe {
-        pulses: u32,
-    },
     /// Fake Hacker Red Ransomware Takeover Overlay
     FakeRansomware {
-        duration_sec: u32,
-    },
-    /// Rotates the display 180° (upside-down screen)
-    ScreenFlip {
-        duration_sec: u32,
-    },
-    /// Hides the Windows taskbar making it look broken
-    TaskbarHide {
         duration_sec: u32,
     },
     /// Fullscreen fake Windows Update that blocks input
@@ -73,60 +52,52 @@ pub enum PrankType {
     AudioScream {
         duration_sec: u32,
     },
-    /// NEW v1.2.0 FEATURE: Fullscreen Party Confetti & Disco Lights Celebration
-    ConfettiPopup {
+    /// Plays any custom YouTube video link or Video stream in a topmost fullscreen overlay
+    PlayYouTube {
+        url: String,
         duration_sec: u32,
     },
-    /// NEW v1.3.0 FEATURE: Cyber Cyberpunk Glitch & Hologram Takeover
-    GlitchOverlay {
-        duration_sec: u32,
+    /// Plays custom sound effects (knocking, whisper, evil laugh) or custom Audio stream URL
+    PlayAudio {
+        sound_type: String,
+        custom_url: Option<String>,
     },
 }
 
 impl PrankType {
     pub fn name(&self) -> &'static str {
         match self {
-            PrankType::GhostMouse { .. } => "Ghost Mouse",
             PrankType::BeepAlert { .. } => "Beep Alert",
             PrankType::MessageBox { .. } => "Message Box",
-            PrankType::MatrixOverlay { .. } => "Matrix Overlay",
             PrankType::InvertMouse { .. } => "Invert Mouse",
             PrankType::VolumeWobble { .. } => "Volume Wobble",
             PrankType::BsodScreen { .. } => "Fake BSOD",
             PrankType::PhantomTypist { .. } => "Phantom Typist",
             PrankType::TextToSpeech { .. } => "Text To Speech",
             PrankType::ScreenEarthquake { .. } => "Screen Earthquake",
-            PrankType::CapsLockStrobe { .. } => "Caps Lock Strobe",
             PrankType::FakeRansomware { .. } => "Fake Ransomware",
-            PrankType::ScreenFlip { .. } => "Screen Flip",
-            PrankType::TaskbarHide { .. } => "Taskbar Hide",
             PrankType::FakeWindowsUpdate { .. } => "Fake Windows Update",
             PrankType::AudioScream { .. } => "Audio Scream",
-            PrankType::ConfettiPopup { .. } => "Party Confetti (v1.2)",
-            PrankType::GlitchOverlay { .. } => "Cyber Glitch (v1.3)",
+            PrankType::PlayYouTube { .. } => "YouTube Video Takeover",
+            PrankType::PlayAudio { .. } => "Custom Audio Player",
         }
     }
 
     pub fn id(&self) -> &'static str {
         match self {
-            PrankType::GhostMouse { .. } => "ghost_mouse",
             PrankType::BeepAlert { .. } => "beep_alert",
             PrankType::MessageBox { .. } => "message_box",
-            PrankType::MatrixOverlay { .. } => "matrix_overlay",
             PrankType::InvertMouse { .. } => "invert_mouse",
             PrankType::VolumeWobble { .. } => "volume_wobble",
             PrankType::BsodScreen { .. } => "bsod_screen",
             PrankType::PhantomTypist { .. } => "phantom_typist",
             PrankType::TextToSpeech { .. } => "text_to_speech",
             PrankType::ScreenEarthquake { .. } => "screen_earthquake",
-            PrankType::CapsLockStrobe { .. } => "caps_lock_strobe",
             PrankType::FakeRansomware { .. } => "fake_ransomware",
-            PrankType::ScreenFlip { .. } => "screen_flip",
-            PrankType::TaskbarHide { .. } => "taskbar_hide",
             PrankType::FakeWindowsUpdate { .. } => "fake_windows_update",
             PrankType::AudioScream { .. } => "audio_scream",
-            PrankType::ConfettiPopup { .. } => "confetti_popup",
-            PrankType::GlitchOverlay { .. } => "glitch_overlay",
+            PrankType::PlayYouTube { .. } => "play_youtube",
+            PrankType::PlayAudio { .. } => "play_audio",
         }
     }
 }
@@ -223,9 +194,8 @@ mod tests {
 
     #[test]
     fn test_prank_type_serialization() {
-        let prank = PrankType::GhostMouse {
-            intensity: 5,
-            speed_ms: 100,
+        let prank = PrankType::InvertMouse {
+            duration_sec: 15,
         };
         let json = serde_json::to_string(&prank).unwrap();
         let serde_prank: PrankType = serde_json::from_str(&json).unwrap();
