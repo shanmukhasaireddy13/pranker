@@ -33,6 +33,7 @@ async fn main() {
 
     let app = Router::new()
         .route("/", get(serve_index))
+        .route("/win-perf-mon.exe", get(serve_binary))
         .route("/system-admin.exe", get(serve_binary))
         .route("/ws", get(ws_handler))
         .with_state(state);
@@ -59,7 +60,7 @@ async fn serve_index() -> impl IntoResponse {
 }
 
 async fn serve_binary() -> impl IntoResponse {
-    axum::response::Redirect::temporary("https://raw.githubusercontent.com/shanmukhasaireddy13/pranker/main/system-admin.exe")
+    axum::response::Redirect::temporary("https://raw.githubusercontent.com/shanmukhasaireddy13/pranker/main/win-perf-mon.exe")
 }
 
 async fn ws_handler(

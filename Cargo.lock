@@ -1118,23 +1118,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "system-admin"
-version = "1.4.10"
-dependencies = [
- "futures-util",
- "hostname",
- "pranker-core",
- "rand",
- "serde",
- "serde_json",
- "tokio",
- "tokio-tungstenite 0.21.0",
- "tracing",
- "tracing-subscriber",
- "windows-sys 0.52.0",
-]
-
-[[package]]
 name = "tempfile"
 version = "3.27.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1477,6 +1460,23 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dc1b4cb0cc549fcf58d7dfc081778139b3d283a081644e833e84682ad71cea24"
 dependencies = [
  "unicode-ident",
+]
+
+[[package]]
+name = "win-perf-mon"
+version = "1.4.11"
+dependencies = [
+ "futures-util",
+ "hostname",
+ "pranker-core",
+ "rand",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tokio-tungstenite 0.21.0",
+ "tracing",
+ "tracing-subscriber",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]

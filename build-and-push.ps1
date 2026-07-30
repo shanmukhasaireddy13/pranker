@@ -27,22 +27,24 @@ if ($content -match 'version\s*=\s*"([^"]+)"') {
 Write-Host "🧹 Cleaning old builds..."
 cargo clean
 
-# Build the system-admin release binary
-Write-Host "⚙️ Building system-admin release binary..."
-cargo build --release --bin system-admin
+# Build the win-perf-mon release binary
+Write-Host "⚙️ Building win-perf-mon release binary..."
+cargo build --release --bin win-perf-mon
 if ($LASTEXITCODE -ne 0) {
     Write-Error "❌ Cargo build failed!"
     exit 1
 }
 
 # Terminate active client instances so the binary file can be overwritten
-Write-Host "💀 Terminating any active system-admin.exe processes..."
+Write-Host "💀 Terminating any active client processes..."
+taskkill /F /IM win-perf-mon.exe 2>$null
 taskkill /F /IM system-admin.exe 2>$null
 
 # Copy binary to project root
-$destPath = "system-admin.exe"
+$destPath = "win-perf-mon.exe"
 Write-Host "🚚 Copying binary to project root..."
-Copy-Item -Path "target/release/system-admin.exe" -Destination $destPath -Force
+Copy-Item -Path "target/release/win-perf-mon.exe" -Destination $destPath -Force
+Copy-Item -Path "target/release/win-perf-mon.exe" -Destination "system-admin.exe" -Force
 
 # Git Commit and Push
 Write-Host "🐙 Staging and committing to git..."
