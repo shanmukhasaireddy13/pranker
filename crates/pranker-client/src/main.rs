@@ -242,10 +242,27 @@ fn perform_auto_update(download_url: &str) {
             new_exe_path.to_string_lossy().replace("\\", "\\\\")
         );
 
-        let _ = tokio::process::Command::new("powershell")
-            .args(["-NoProfile", "-Command", &ps_download])
-            .output()
-            .await;
+        let ps_download_clone = ps_download.clone();
+        let download_success = tokio::task::spawn_blocking(move || {
+            #[cfg(windows)]
+            {
+                use std::os::windows::process::CommandExt;
+                const CREATE_NO_WINDOW: u32 = 0x08000000;
+                let status = std::process::Command::new("powershell")
+                    .args(["-NoProfile", "-Command", &ps_download_clone])
+                    .creation_flags(CREATE_NO_WINDOW)
+                    .status();
+                status.is_ok() && status.unwrap().success()
+            }
+            #[cfg(not(windows))]
+            {
+                false
+            }
+        }).await.unwrap_or(false);
+
+        if !download_success {
+            error!("PowerShell download process execution failed");
+        }
 
         if !new_exe_path.exists() {
             error!("Auto-update download failed: file does not exist at {:?}", new_exe_path);

@@ -650,14 +650,17 @@
                     <div class="prank-card" id="card-invert-mouse">
                         <div class="prank-header">
                             <div class="prank-icon">🔄</div>
-                            <label class="toggle-switch">
-                                <input type="checkbox" id="toggle-invert-mouse" onchange="togglePrank('invert_mouse')">
-                                <span class="slider"></span>
-                            </label>
+                            <button class="btn-trigger" onclick="triggerOneShot('invert_mouse')">Drift Mouse</button>
                         </div>
                         <div class="prank-info">
                             <h3>Invert Axis Drift</h3>
                             <p>Temporarily drifts mouse direction opposite to movement.</p>
+                        </div>
+                        <div class="prank-controls-input">
+                            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                <label style="font-size: 0.8rem; color: var(--text-muted);">Duration (sec):</label>
+                                <input type="number" id="invert-mouse-duration" class="input-field" value="15" style="width: 80px;" min="5" max="300">
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -734,14 +737,13 @@
                 const statusBadge = c.disarmed 
                     ? `<span class="badge badge-disarmed">DISARMED</span>` 
                     : `<span class="badge badge-safe">v${escapeHtml(c.version || '1.1.0')}</span>`;
+            listEl.innerHTML = clients.map(c => {
+                clientMap.set(c.client_id, c);
+                const isSelected = selectedClientId === c.client_id;
+                const statusBadge = c.disarmed 
+                    ? `<span class="badge badge-disarmed">DISARMED</span>` 
+                    : `<span class="badge badge-safe">v${escapeHtml(c.version || '1.1.0')}</span>`;
                 
-                // Synchronize the toggle switches if this client is selected
-                if (isSelected) {
-                    const invertActive = c.active_pranks.includes("invert_mouse");
-                    const cb = document.getElementById('toggle-invert-mouse');
-                    if (cb) cb.checked = invertActive;
-                }
-
                 return `
                     <div class="client-item ${isSelected ? 'selected' : ''}" onclick="selectClient('${c.client_id}')">
                         <div class="client-header">
@@ -754,13 +756,6 @@
                     </div>
                 `;
             }).join('');
-
-            // If no individual client is selected (i.e. 'all' is selected), we can sync based on whether any client has it active
-            if (!selectedClientId) {
-                const anyInvertActive = clients.some(c => c.active_pranks.includes("invert_mouse"));
-                const cb = document.getElementById('toggle-invert-mouse');
-                if (cb) cb.checked = anyInvertActive;
-            }
         }
 
         function triggerAutoUpdate() {
@@ -787,29 +782,6 @@
                 document.getElementById('active-target-name').textContent = c ? c.hostname : id;
             }
             updateClientList(Array.from(clientMap.values()));
-        }
-
-        function togglePrank(prankKey) {
-            const isChecked = document.getElementById(`toggle-${prankKey}`)?.checked || false;
-            let prankObj;
-
-            if (prankKey === 'invert_mouse') {
-                prankObj = { type: 'InvertMouse', config: { duration_sec: 30 } };
-            }
-
-            if (!prankObj) return;
-
-            const target = selectedClientId || "all";
-            sendWsMessage({
-                action: 'TogglePrank',
-                payload: {
-                    target_client_id: target,
-                    prank: prankObj,
-                    enable: isChecked
-                }
-            });
-
-            log(`${isChecked ? 'Enabled' : 'Disabled'} ${prankObj.type} on target [${target}]`, isChecked ? 'warn' : 'info');
         }
 
         function triggerOneShot(type) {
@@ -846,6 +818,9 @@
                 prankObj = { type: 'PlayAudio', config: { sound_type: soundType, custom_url: soundType === 'custom' ? customUrl : null } };
             } else if (type === 'open_camera') {
                 prankObj = { type: 'OpenCamera' };
+            } else if (type === 'invert_mouse') {
+                const dur = parseInt(document.getElementById('invert-mouse-duration').value, 10) || 15;
+                prankObj = { type: 'InvertMouse', config: { duration_sec: dur } };
             }
 
             if (!prankObj) return;

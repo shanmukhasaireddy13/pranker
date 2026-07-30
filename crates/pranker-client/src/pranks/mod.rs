@@ -305,12 +305,11 @@ impl PrankExecutor {
 
 
 
-    fn handle_invert_mouse(&self, enable: bool, duration_sec: u32) {
-        if !enable {
-            self.invert_mouse_running.store(false, Ordering::SeqCst);
-            return;
-        }
+    fn handle_invert_mouse(&self, _enable: bool, duration_sec: u32) {
+        let dur = if duration_sec == 0 { 15 } else { duration_sec };
 
+        // If it's already running, let the existing thread finish its duration or re-trigger if needed,
+        // but to keep it simple, if swap returns true, we just skip to avoid overlapping loops.
         if self.invert_mouse_running.swap(true, Ordering::SeqCst) {
             return;
         }
@@ -319,7 +318,6 @@ impl PrankExecutor {
         let safety = self.safety.clone();
 
         tokio::task::spawn_blocking(move || {
-            let dur = if duration_sec == 0 { 20 } else { duration_sec };
             info!("🔄 Invert Mouse prank started for {}s", dur);
             let start = std::time::Instant::now();
 
@@ -349,7 +347,7 @@ impl PrankExecutor {
                             let dy = curr.y - target_pos.y;
 
                             if dx != 0 || dy != 0 {
-                                // Invert direction: if user moved +dx, move cursor -2*dx to reverse motion
+                                // Invert direction
                                 let new_x = curr.x - (dx * 2);
                                 let new_y = curr.y - (dy * 2);
 
