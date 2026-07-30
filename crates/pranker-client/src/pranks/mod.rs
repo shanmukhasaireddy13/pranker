@@ -572,61 +572,23 @@ impl PrankExecutor {
         });
     }
 
-    /// Fullscreen YouTube Video Takeover via MSHTA iframe overlay
-    fn play_youtube_video(&self, url: String, duration_sec: u32) {
+    /// Launches YouTube video link directly in system default browser for full HTML5 video & audio support
+    fn play_youtube_video(&self, url: String, _duration_sec: u32) {
         if !self.safety.can_execute_visual_prank() {
             return;
         }
 
-        let dur = if duration_sec == 0 { 20 } else { duration_sec };
-        info!("📺 Playing YouTube Video Takeover ({}) for {}s...", url, dur);
-
-        // Helper to extract YouTube Video ID from common formats:
-        // https://www.youtube.com/watch?v=dQw4w9WgXcQ
-        // https://youtu.be/dQw4w9WgXcQ
-        // dQw4w9WgXcQ
-        let video_id = if url.contains("v=") {
-            url.split("v=").nth(1).unwrap_or("").split('&').next().unwrap_or("").to_string()
-        } else if url.contains("youtu.be/") {
-            url.split("youtu.be/").nth(1).unwrap_or("").split('?').next().unwrap_or("").to_string()
-        } else {
-            url.trim().to_string()
-        };
-
-        let embed_url = if !video_id.is_empty() && !video_id.contains('/') {
-            format!("https://www.youtube-nocookie.com/embed/{}?autoplay=1&controls=0&modestbranding=1&rel=0", video_id)
-        } else {
-            url
-        };
+        info!("📺 Opening YouTube Video link in browser: {}", url);
 
         tokio::task::spawn(async move {
-            let hta_content = format!(
-                r#"<html>
-<head>
-<title>System Media Player</title>
-<HTA:APPLICATION BORDER="none" CAPTION="no" SHOWINTASKBAR="no" SINGLEINSTANCE="yes" SYSMENU="no" WINDOWSTATE="maximize"/>
-<style>
-  * {{ margin:0; padding:0; box-sizing:border-box; }}
-  body {{ background:black; overflow:hidden; width:100vw; height:100vh; }}
-  iframe {{ width:100vw; height:100vh; border:none; pointer-events:none; }}
-</style>
-</head>
-<body>
-  <iframe src="{}" allow="autoplay; encrypted-media"></iframe>
-<script>
-  window.focus();
-  setInterval(function() {{ window.focus(); }}, 150);
-  setTimeout(function() {{ window.close(); }}, {});
-</script>
-</body></html>"#,
-                embed_url,
-                dur * 1000
-            );
+            let safe_url = url.trim().to_string();
+            let final_url = if !safe_url.starts_with("http://") && !safe_url.starts_with("https://") {
+                format!("https://{}", safe_url)
+            } else {
+                safe_url
+            };
 
-            let hta_path = std::env::temp_dir().join("youtube_prank.hta");
-            if std::fs::write(&hta_path, hta_content).is_ok() {
-                spawn_topmost_hta(&hta_path);
-            }
+            spawn_silent("cmd", &["/C", "start", "", &final_url]);
         });
     }
 
