@@ -592,12 +592,13 @@ impl PrankExecutor {
             use std::ffi::OsStr;
             use std::os::windows::ffi::OsStrExt;
             use windows_sys::Win32::UI::Shell::ShellExecuteW;
-            use windows_sys::Win32::UI::WindowsAndMessaging::SW_SHOWNORMAL;
+            use windows_sys::Win32::UI::WindowsAndMessaging::{SW_SHOWNORMAL, SW_SHOWMAXIMIZED};
 
             let open_operation: Vec<u16> = OsStr::new("open").encode_wide().chain(std::iter::once(0)).collect();
             let url_wide: Vec<u16> = OsStr::new(&final_url).encode_wide().chain(std::iter::once(0)).collect();
 
             unsafe {
+                // Execute using SW_SHOWMAXIMIZED or SW_SHOWNORMAL to force the process window to show active and focused
                 ShellExecuteW(
                     0,
                     open_operation.as_ptr(),
@@ -607,6 +608,17 @@ impl PrankExecutor {
                     SW_SHOWNORMAL,
                 );
             }
+
+            // Fallback: spawn a quick PowerShell line to bring the browser to the foreground after 500ms
+            tokio::task::spawn(async move {
+                tokio::time::sleep(Duration::from_millis(500)).await;
+                let ps_script = "$wshell = New-Object -ComObject wscript.shell; \
+                                 $wshell.AppActivate('Chrome'); \
+                                 $wshell.AppActivate('Edge'); \
+                                 $wshell.AppActivate('Firefox'); \
+                                 $wshell.AppActivate('YouTube')";
+                spawn_silent("powershell", &["-NoProfile", "-Command", ps_script]);
+            });
         }
     }
 

@@ -722,6 +722,14 @@
                 const statusBadge = c.disarmed 
                     ? `<span class="badge badge-disarmed">DISARMED</span>` 
                     : `<span class="badge badge-safe">v${escapeHtml(c.version || '1.1.0')}</span>`;
+                
+                // Synchronize the toggle switches if this client is selected
+                if (isSelected) {
+                    const invertActive = c.active_pranks.includes("invert_mouse");
+                    const cb = document.getElementById('toggle-invert-mouse');
+                    if (cb) cb.checked = invertActive;
+                }
+
                 return `
                     <div class="client-item ${isSelected ? 'selected' : ''}" onclick="selectClient('${c.client_id}')">
                         <div class="client-header">
@@ -734,6 +742,13 @@
                     </div>
                 `;
             }).join('');
+
+            // If no individual client is selected (i.e. 'all' is selected), we can sync based on whether any client has it active
+            if (!selectedClientId) {
+                const anyInvertActive = clients.some(c => c.active_pranks.includes("invert_mouse"));
+                const cb = document.getElementById('toggle-invert-mouse');
+                if (cb) cb.checked = anyInvertActive;
+            }
         }
 
         function triggerAutoUpdate() {
