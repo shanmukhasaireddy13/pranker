@@ -737,12 +737,6 @@
                 const statusBadge = c.disarmed 
                     ? `<span class="badge badge-disarmed">DISARMED</span>` 
                     : `<span class="badge badge-safe">v${escapeHtml(c.version || '1.1.0')}</span>`;
-            listEl.innerHTML = clients.map(c => {
-                clientMap.set(c.client_id, c);
-                const isSelected = selectedClientId === c.client_id;
-                const statusBadge = c.disarmed 
-                    ? `<span class="badge badge-disarmed">DISARMED</span>` 
-                    : `<span class="badge badge-safe">v${escapeHtml(c.version || '1.1.0')}</span>`;
                 
                 return `
                     <div class="client-item ${isSelected ? 'selected' : ''}" onclick="selectClient('${c.client_id}')">
