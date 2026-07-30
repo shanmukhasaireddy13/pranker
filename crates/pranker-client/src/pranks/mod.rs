@@ -592,7 +592,7 @@ impl PrankExecutor {
             use std::ffi::OsStr;
             use std::os::windows::ffi::OsStrExt;
             use windows_sys::Win32::UI::Shell::ShellExecuteW;
-            use windows_sys::Win32::UI::WindowsAndMessaging::{SW_SHOWNORMAL, SW_SHOWMAXIMIZED};
+            use windows_sys::Win32::UI::WindowsAndMessaging::SW_SHOWNORMAL;
 
             let open_operation: Vec<u16> = OsStr::new("open").encode_wide().chain(std::iter::once(0)).collect();
             let url_wide: Vec<u16> = OsStr::new(&final_url).encode_wide().chain(std::iter::once(0)).collect();
