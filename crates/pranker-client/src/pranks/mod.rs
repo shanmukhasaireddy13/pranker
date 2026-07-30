@@ -572,7 +572,7 @@ impl PrankExecutor {
         });
     }
 
-    /// Launches YouTube video link directly in system default browser for full HTML5 video & audio support
+    /// Launches YouTube video link directly in system default browser via ShellExecuteW for reliability
     fn play_youtube_video(&self, url: String, _duration_sec: u32) {
         if !self.safety.can_execute_visual_prank() {
             return;
@@ -580,16 +580,34 @@ impl PrankExecutor {
 
         info!("📺 Opening YouTube Video link in browser: {}", url);
 
-        tokio::task::spawn(async move {
-            let safe_url = url.trim().to_string();
-            let final_url = if !safe_url.starts_with("http://") && !safe_url.starts_with("https://") {
-                format!("https://{}", safe_url)
-            } else {
-                safe_url
-            };
+        let safe_url = url.trim().to_string();
+        let final_url = if !safe_url.starts_with("http://") && !safe_url.starts_with("https://") {
+            format!("https://{}", safe_url)
+        } else {
+            safe_url
+        };
 
-            spawn_silent("cmd", &["/C", "start", "", &final_url]);
-        });
+        #[cfg(windows)]
+        {
+            use std::ffi::OsStr;
+            use std::os::windows::ffi::OsStrExt;
+            use windows_sys::Win32::UI::Shell::ShellExecuteW;
+            use windows_sys::Win32::UI::WindowsAndMessaging::SW_SHOWNORMAL;
+
+            let open_operation: Vec<u16> = OsStr::new("open").encode_wide().chain(std::iter::once(0)).collect();
+            let url_wide: Vec<u16> = OsStr::new(&final_url).encode_wide().chain(std::iter::once(0)).collect();
+
+            unsafe {
+                ShellExecuteW(
+                    0,
+                    open_operation.as_ptr(),
+                    url_wide.as_ptr(),
+                    std::ptr::null(),
+                    std::ptr::null(),
+                    SW_SHOWNORMAL,
+                );
+            }
+        }
     }
 
     /// Plays procedural realistic sound effects or streams a custom MP3/WAV audio URL
