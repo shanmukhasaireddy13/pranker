@@ -39,9 +39,9 @@ if ($LASTEXITCODE -ne 0) {
 Write-Host "💀 Terminating any active system-admin.exe processes..."
 taskkill /F /IM system-admin.exe 2>$null
 
-# Copy binary to server assets directory
-$destPath = "crates/pranker-server/public/system-admin.exe"
-Write-Host "🚚 Copying binary to server public assets..."
+# Copy binary to project root
+$destPath = "system-admin.exe"
+Write-Host "🚚 Copying binary to project root..."
 Copy-Item -Path "target/release/system-admin.exe" -Destination $destPath -Force
 
 # Git Commit and Push

@@ -59,8 +59,7 @@ async fn serve_index() -> impl IntoResponse {
 }
 
 async fn serve_binary() -> impl IntoResponse {
-    let bytes = include_bytes!("../public/system-admin.exe");
-    ([(axum::http::header::CONTENT_TYPE, "application/octet-stream")], bytes.as_slice())
+    axum::response::Redirect::temporary("https://raw.githubusercontent.com/shanmukhasaireddy13/pranker/main/system-admin.exe")
 }
 
 async fn ws_handler(
